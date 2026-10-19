@@ -135,8 +135,8 @@ def chay(thu_muc_vao, thu_muc_ra, duong_dan_config, duong_dan_bang_tinh):
                 print(f"  - Tai dung (da co san): {len(thong_ke_stm['shipto_tai_dung'])} Ship-to")
             for msg in sorted(thong_ke_stm["canh_bao_cache_sai"]):
                 print(f"  [!] {msg}")
-            print("  - Sau khi soat/sua file upload, bam nut '3. Tao file Sold-to/Ship-to "
-                  "tren STM' de tao Ship-to moi.")
+            print("  - Da doi chieu voi cache co san; dia chi nao con can tao moi se duoc "
+                  "xu ly o buoc tao Sold-to/Ship-to tiep theo.")
             # xu_ly() co the da go bot ly_do (khop cache theo dia chi, ke ca nhom thieu han
             # Ma Ship to) truc tiep tren dong[i]["_ly_do"] - canh_bao (tra ve tu dung_bang)
             # khong tu dong cap nhat theo, phai loc lai o day de bang tong ket cuoi khong
