@@ -92,7 +92,12 @@ def _sheet_upload(ws, dong):
 
     for r in dong:
         gia_tri = [r.get(k, "") for k in KHOA[:-1]]
-        gia_tri.append("; ".join(r.get("_ly_do", [])))
+        chi_tiet_theo_loai = r.get("_chi_tiet", {})
+        ly_do_day_du = [
+            f"{loai} — {chi_tiet_theo_loai[loai]}" if loai in chi_tiet_theo_loai else loai
+            for loai in r.get("_ly_do", [])
+        ]
+        gia_tri.append("; ".join(ly_do_day_du))
         ws.append(gia_tri)
         i = ws.max_row
         thieu = set(r.get("_thieu", []))

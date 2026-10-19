@@ -311,7 +311,10 @@ def tra_dia_chi(dia_chi_goc, ten_tinh_rg, du_lieu, lay_dvhc_cu_tu_geocode=None):
                  "do_tin": "CAO", "ly_do": ""}
     tinh_hien_thi = du_lieu.ten_stm_tinh(s["tinh_cu"]) or s["tinh_cu"]
     if s["ly_do"]:
-        return {"N": "", "O": tinh_hien_thi, "P": "", "do_tin": s["do_tin"], "ly_do": s["ly_do"]}
+        kq = {"N": "", "O": tinh_hien_thi, "P": "", "do_tin": s["do_tin"], "ly_do": s["ly_do"]}
+        if s["ly_do"] == "mo_ho" and s.get("ung_vien"):
+            kq["ung_vien"] = s["ung_vien"]
+        return kq
 
     ten = du_lieu.ten_stm(s["tinh_cu"], s["quan_cu"])
     if ten is None:

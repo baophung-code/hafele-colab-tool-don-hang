@@ -72,7 +72,7 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
         if d is None:
             continue                        # ngoài phạm vi driver — bỏ, không cảnh báo
 
-        thieu, ly_do_dong = [], []
+        thieu, ly_do_dong, chi_tiet_dong = [], [], {}
 
         def danh_dau(loai, cot_moi, chi_tiet=""):
             bao(odo, loai, chi_tiet)
@@ -81,6 +81,8 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
                     thieu.append(c)
             if loai not in ly_do_dong:
                 ly_do_dong.append(loai)
+                if chi_tiet:
+                    chi_tiet_dong[loai] = chi_tiet
 
         ma_don = str(d.get(ten_cot_ma_don, "")).strip()
 
@@ -112,15 +114,21 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
 
         if not quan:
             if dc["ly_do"] == "mo_ho":
+                ds_ung_vien = "; ".join(f"{q} ({t})" for t, q in dc.get("ung_vien", []))
                 danh_dau("Quận/Huyện hoặc Phường/Xã trùng tên nhiều nơi", ["N", "P"],
-                          "Khớp được nhiều quận/huyện ứng viên, tỉnh cũng không lọc còn 1")
+                          f"Địa chỉ SAP gốc: '{dia_chi_goc}'. Khớp được nhiều ứng viên trùng "
+                          f"tên ({ds_ung_vien or 'không rõ'}), tỉnh cũng không lọc còn 1 bằng "
+                          "mã vùng/text để chọn đúng 1")
             elif dc["ly_do"] == "khong_hop_le_stm":
                 danh_dau("Quận không có trong danh sách STM chấp nhận", ["N", "P"],
-                          f"Suy ra '{dc.get('quan_tho', '')}' (tỉnh '{dc.get('tinh_tho', '')}') "
-                          "nhưng STM không có tên này trong danh mục")
+                          f"Địa chỉ SAP gốc: '{dia_chi_goc}'. Suy ra '{dc.get('quan_tho', '')}' "
+                          f"(tỉnh '{dc.get('tinh_tho', '')}') nhưng STM không có tên này trong "
+                          "danh mục")
             else:
                 danh_dau("Không xác định được Quận/Huyện", ["N", "P"],
-                          "Không có mảnh chữ nào trong địa chỉ khớp quận cũ lẫn phường mới")
+                          f"Địa chỉ SAP gốc: '{dia_chi_goc}'. Không có mảnh chữ nào trong địa "
+                          "chỉ khớp quận cũ lẫn phường mới (có thể do SAP không điền hoặc viết "
+                          "khác tên chuẩn)")
 
         if not ten_tinh:
             danh_dau("Không xác định được Tỉnh", ["O"],
@@ -154,7 +162,8 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
             "T": cot_t, "U": cot_u, "V": str(d.get("Handling Unit", "")).strip(), "W": cot_w,
             "X": "LTL", "Y": loai_dich_vu,
             "AA": thong_tin_nguoi_nhan(d, cfg.cot_dia_chi, cfg.cum_tu),
-            "_thieu": thieu, "_ly_do": ly_do_dong, "_dia_chi_goc": dia_chi_goc,
+            "_thieu": thieu, "_ly_do": ly_do_dong, "_chi_tiet": chi_tiet_dong,
+            "_dia_chi_goc": dia_chi_goc,
         }
         for c in COT_TRONG:
             r[c] = ""
