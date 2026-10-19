@@ -127,10 +127,9 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
 
         if not ten_tinh:
             danh_dau("Không xác định được Tỉnh", ["O"],
-                      f"Mã vùng SAP ('{rg}') không có trong bảng tra và địa chỉ không ghi tên tỉnh")
+                      f"SAP: '{dia_chi_goc}'. Địa chỉ không ghi tên tỉnh")
         elif tin_cay_rg == "thap" and dc["do_tin"] != "CAO":
-            danh_dau("Tỉnh độ tin cậy thấp", ["O"],
-                      f"Mã vùng SAP ('{rg}') suy ra {ten_tinh} nhưng độ tin cậy thấp, cần soát lại")
+            danh_dau("Tỉnh độ tin cậy thấp", ["O"], f"Suy ra {ten_tinh}, cần soát lại")
 
         sl = it.get("Delivery quantity", "")
         if isinstance(sl, (int, float)) and sl <= 0:
