@@ -17,6 +17,17 @@ from .nhan_dien_file import nhan_dien_thu_muc
 from . import nominatim_api, stm_api, stm_cache, stm_soldto_shipto, trackasia_api
 
 
+_GIO_VN = datetime.timezone(datetime.timedelta(hours=7))
+
+
+def _gio_vn_hien_tai():
+    """Giờ Việt Nam (UTC+7) dùng để đặt tên file — máy Windows khách để sẵn giờ VN
+    nên không khác gì trước đây, nhưng máy chủ Colab mặc định chạy UTC, lệch 7
+    tiếng nếu dùng datetime.now() thường (bug thật 19/10/2026, tên file tạo trên
+    Colab hiện giờ sáng dù tạo lúc chiều)."""
+    return datetime.datetime.now(_GIO_VN)
+
+
 class LoiNguoiDung(Exception):
     """Lỗi khách tự sửa được — in gọn, không in traceback."""
 
@@ -241,7 +252,7 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
     duong_dan_stm = None
     if n_soldto or n_shipto:
         duong_dan_stm = thu_muc_ra / (
-            f"upload_soldto_shipto_{datetime.datetime.now():%Y%m%d_%H%M%S}.xlsx")
+            f"upload_soldto_shipto_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}.xlsx")
         stm_api.ghi_file_soldto_shipto(duong_dan_stm, thong_ke["can_tao_moi"])
         print(f"  Da ghi file can tao moi: {duong_dan_stm.name}")
         print("    (import file nay qua UI Import Excel cua STM truoc khi dung don)")
@@ -252,7 +263,7 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
 def _duong_dan_file_ra(thu_muc_ra):
     """Tên file kèm giây để giảm khả năng trùng; nếu vẫn trùng (2 lần chạy
     trong cùng 1 giây) thì tự thêm hậu tố _2, _3... để không đè file cũ."""
-    goc = f"upload_STM_{datetime.datetime.now():%Y%m%d_%H%M%S}"
+    goc = f"upload_STM_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}"
     duong_dan = thu_muc_ra / f"{goc}.xlsx"
     i = 2
     while duong_dan.exists():
