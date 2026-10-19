@@ -1,0 +1,773 @@
+loai,ten,tinh
+tinh,Hà Tây,
+tinh,Hà Nội,
+tinh,Hà Giang,
+tinh,Cao Bằng,
+tinh,Bắc Kạn,
+tinh,Tuyên Quang,
+tinh,Lào Cai,
+tinh,Điện Biên,
+tinh,Lai Châu,
+tinh,Sơn La,
+tinh,Yên Bái,
+tinh,Hòa Bình,
+tinh,Thái Nguyên,
+tinh,Lạng Sơn,
+tinh,Quảng Ninh,
+tinh,Bắc Giang,
+tinh,Phú Thọ,
+tinh,Vĩnh Phúc,
+tinh,Bắc Ninh,
+tinh,Hải Dương,
+tinh,Hải Phòng,
+tinh,Hưng Yên,
+tinh,Thái Bình,
+tinh,Hà Nam,
+tinh,Nam Định,
+tinh,Ninh Bình,
+tinh,Thanh Hóa,
+tinh,Nghệ An,
+tinh,Hà Tĩnh,
+tinh,Quảng Bình,
+tinh,Quảng Trị,
+tinh,Thừa Thiên Huế,
+tinh,Đà Nẵng,
+tinh,Quảng Nam,
+tinh,Quảng Ngãi,
+tinh,Bình Định,
+tinh,Phú Yên,
+tinh,Khánh Hòa,
+tinh,Ninh Thuận,
+tinh,Bình Thuận,
+tinh,Kon Tum,
+tinh,Gia Lai,
+tinh,Đắk Lắk,
+tinh,Đắk Nông,
+tinh,Lâm Đồng,
+tinh,Bình Phước,
+tinh,Tây Ninh,
+tinh,Bình Dương,
+tinh,Đồng Nai,
+tinh,Bà Rịa Vũng Tàu,
+tinh,Hồ Chí Minh,
+tinh,Long An,
+tinh,Tiền Giang,
+tinh,Bến Tre,
+tinh,Trà Vinh,
+tinh,Vĩnh Long,
+tinh,Đồng Tháp,
+tinh,An Giang,
+tinh,Kiên Giang,
+tinh,Cần Thơ,
+tinh,Hậu Giang,
+tinh,Sóc Trăng,
+tinh,Bạc Liêu,
+tinh,Cà Mau,
+quan,Ba Đình,Hà Nội
+quan,Hoàn Kiếm,Hà Nội
+quan,Hai Bà Trưng,Hà Nội
+quan,Đống Đa,Hà Nội
+quan,Tây Hồ,Hà Nội
+quan,Cầu Giấy,Hà Nội
+quan,Thanh Xuân,Hà Nội
+quan,Hoàng Mai,Hà Nội
+quan,Long Biên,Hà Nội
+quan,Từ Liêm,Hà Nội
+quan,Thanh Trì,Hà Nội
+quan,Gia Lâm,Hà Nội
+quan,Đông Anh,Hà Nội
+quan,Sóc Sơn,Hà Nội
+quan,Hà Đông,Hà Nội
+quan,Sơn Tây,Hà Nội
+quan,Ba Vì,Hà Nội
+quan,Phúc Thọ,Hà Nội
+quan,Thạch Thất,Hà Nội
+quan,Quốc Oai,Hà Nội
+quan,Chương Mỹ,Hà Nội
+quan,Đan Phượng,Hà Nội
+quan,Hoài Đức,Hà Nội
+quan,Thanh Oai,Hà Nội
+quan,Mỹ Đức,Hà Nội
+quan,Ứng Hoà,Hà Nội
+quan,Thường Tín,Hà Nội
+quan,Phú Xuyên,Hà Nội
+quan,Mê Linh,Hà Nội
+quan,Quận 1,Hồ Chí Minh
+quan,Quận 2,Hồ Chí Minh
+quan,Quận 3,Hồ Chí Minh
+quan,Quận 4,Hồ Chí Minh
+quan,Quận 5,Hồ Chí Minh
+quan,Quận 6,Hồ Chí Minh
+quan,Quận 7,Hồ Chí Minh
+quan,Quận 8,Hồ Chí Minh
+quan,Quận 9,Hồ Chí Minh
+quan,Quận 10,Hồ Chí Minh
+quan,Quận 11,Hồ Chí Minh
+quan,Quận 12,Hồ Chí Minh
+quan,Quận Gò Vấp,Hồ Chí Minh
+quan,Quận Tân Bình,Hồ Chí Minh
+quan,Quận Tân Phú,Hồ Chí Minh
+quan,Quận Bình Thạnh,Hồ Chí Minh
+quan,Quận Phú Nhuận,Hồ Chí Minh
+quan,Quận Thủ Đức,Hồ Chí Minh
+quan,Quận Bình Tân,Hồ Chí Minh
+quan,Huyện Bình Chánh,Hồ Chí Minh
+quan,Huyện Củ Chi,Hồ Chí Minh
+quan,Huyện Hóc Môn,Hồ Chí Minh
+quan,Huyện Nhà Bè,Hồ Chí Minh
+quan,Huyện Cần Giờ,Hồ Chí Minh
+quan,Hồng Bàng,Hải Phòng
+quan,Lê Chân,Hải Phòng
+quan,Ngô Quyền,Hải Phòng
+quan,Kiến An,Hải Phòng
+quan,Hải An,Hải Phòng
+quan,Đồ Sơn,Hải Phòng
+quan,An Lão,Hải Phòng
+quan,Kiến Thụy,Hải Phòng
+quan,Thủy Nguyên,Hải Phòng
+quan,An Dương,Hải Phòng
+quan,Tiên Lãng,Hải Phòng
+quan,Vĩnh Bảo,Hải Phòng
+quan,Cát Hải,Hải Phòng
+quan,Bạch Long Vĩ,Hải Phòng
+quan,Dương Kinh,Hải Phòng
+quan,Hải Châu,Đà Nẵng
+quan,Thanh Khê,Đà Nẵng
+quan,Sơn Trà,Đà Nẵng
+quan,Ngũ Hành Sơn,Đà Nẵng
+quan,Liên Chiểu,Đà Nẵng
+quan,Hoà Vang,Đà Nẵng
+quan,Cẩm Lệ,Đà Nẵng
+quan,Hà Giang,Hà Giang
+quan,Đồng Văn,Hà Giang
+quan,Mèo Vạc,Hà Giang
+quan,Yên Minh,Hà Giang
+quan,Quản Bạ,Hà Giang
+quan,Vị Xuyên,Hà Giang
+quan,Bắc Mê,Hà Giang
+quan,Hoàng Su Phì,Hà Giang
+quan,Xín Mần,Hà Giang
+quan,Bắc Quang,Hà Giang
+quan,Quang Bình,Hà Giang
+quan,Cao Bằng,Cao Bằng
+quan,Bảo Lạc,Cao Bằng
+quan,Thông Nông,Cao Bằng
+quan,Hà Quảng,Cao Bằng
+quan,Trà Lĩnh,Cao Bằng
+quan,Trùng Khánh,Cao Bằng
+quan,Nguyên Bình,Cao Bằng
+quan,Hoà An,Cao Bằng
+quan,Quảng Uyên,Cao Bằng
+quan,Thạch An,Cao Bằng
+quan,Hạ Lang,Cao Bằng
+quan,Bảo Lâm,Cao Bằng
+quan,Phục Hoà,Cao Bằng
+quan,Lai Châu,Lai Châu
+quan,Tam Đường,Lai Châu
+quan,Phong Thổ,Lai Châu
+quan,Sìn Hồ,Lai Châu
+quan,Mường Tè,Lai Châu
+quan,Than Uyên,Lai Châu
+quan,Tân Uyên,Lai Châu
+quan,Lào Cai,Lào Cai
+quan,Xi Ma Cai,Lào Cai
+quan,Bát Xát,Lào Cai
+quan,Bảo Thắng,Lào Cai
+quan,Sa Pa,Lào Cai
+quan,Văn Bàn,Lào Cai
+quan,Bảo Yên,Lào Cai
+quan,Bắc Hà,Lào Cai
+quan,Mường Khương,Lào Cai
+quan,Tuyên Quang,Tuyên Quang
+quan,Na Hang,Tuyên Quang
+quan,Chiêm Hoá,Tuyên Quang
+quan,Hàm Yên,Tuyên Quang
+quan,Yên Sơn,Tuyên Quang
+quan,Sơn Dương,Tuyên Quang
+quan,Lạng Sơn,Lạng Sơn
+quan,Tràng Định,Lạng Sơn
+quan,Bình Gia,Lạng Sơn
+quan,Văn Lãng,Lạng Sơn
+quan,Bắc Sơn,Lạng Sơn
+quan,Văn Quan,Lạng Sơn
+quan,Cao Lộc,Lạng Sơn
+quan,Lộc Bình,Lạng Sơn
+quan,Chi Lăng,Lạng Sơn
+quan,Đình Lập,Lạng Sơn
+quan,Hữu Lũng,Lạng Sơn
+quan,Bắc Kạn,Bắc Kạn
+quan,Chợ Đồn,Bắc Kạn
+quan,Bạch Thông,Bắc Kạn
+quan,Na Rì,Bắc Kạn
+quan,Ngân Sơn,Bắc Kạn
+quan,Ba Bể,Bắc Kạn
+quan,Chợ Mới,Bắc Kạn
+quan,Pác Nặm,Bắc Kạn
+quan,Thái Nguyên,Thái Nguyên
+quan,Sông Công,Thái Nguyên
+quan,Định Hoá,Thái Nguyên
+quan,Phú Lương,Thái Nguyên
+quan,Võ Nhai,Thái Nguyên
+quan,Đại Từ,Thái Nguyên
+quan,Đồng Hỷ,Thái Nguyên
+quan,Phú Bình,Thái Nguyên
+quan,Phổ Yên,Thái Nguyên
+quan,Yên Bái,Yên Bái
+quan,Nghĩa Lộ,Yên Bái
+quan,Văn Yên,Yên Bái
+quan,Yên Bình,Yên Bái
+quan,Mù Cang Chải,Yên Bái
+quan,Văn Chấn,Yên Bái
+quan,Trấn Yên,Yên Bái
+quan,Trạm Tấu,Yên Bái
+quan,Lục Yên,Yên Bái
+quan,Sơn La,Sơn La
+quan,Quỳnh Nhai,Sơn La
+quan,Mường La,Sơn La
+quan,Thuận Châu,Sơn La
+quan,Bắc Yên,Sơn La
+quan,Phù Yên,Sơn La
+quan,Mai Sơn,Sơn La
+quan,Yên Châu,Sơn La
+quan,Sông Mã,Sơn La
+quan,Mộc Châu,Sơn La
+quan,Sốp Cộp,Sơn La
+quan,Việt Trì,Phú Thọ
+quan,Phú Thọ,Phú Thọ
+quan,Đoan Hùng,Phú Thọ
+quan,Thanh Ba,Phú Thọ
+quan,Hạ Hoà,Phú Thọ
+quan,Cẩm Khê,Phú Thọ
+quan,Yên Lập,Phú Thọ
+quan,Thanh Sơn,Phú Thọ
+quan,Phù Ninh,Phú Thọ
+quan,Lâm Thao,Phú Thọ
+quan,Tam Nông,Phú Thọ
+quan,Thanh Thủy,Phú Thọ
+quan,Tân Sơn,Phú Thọ
+quan,Bình Xuyên,Vĩnh Phúc
+quan,Lập Thạch,Vĩnh Phúc
+quan,Phúc Yên,Vĩnh Phúc
+quan,Tam Dương,Vĩnh Phúc
+quan,Vĩnh Tường,Vĩnh Phúc
+quan,Vĩnh Yên,Vĩnh Phúc
+quan,Yên Lạc,Vĩnh Phúc
+quan,Tam Đảo,Vĩnh Phúc
+quan,Sông Lô,Vĩnh Phúc
+quan,Ba Chẽ,Quảng Ninh
+quan,Bình Liêu,Quảng Ninh
+quan,Cẩm Phả,Quảng Ninh
+quan,Cô Tô,Quảng Ninh
+quan,Đầm Hà,Quảng Ninh
+quan,Đông Triều,Quảng Ninh
+quan,Hạ Long,Quảng Ninh
+quan,Hoành Bồ,Quảng Ninh
+quan,Móng Cái,Quảng Ninh
+quan,Quảng Hà,Quảng Ninh
+quan,Tiên Yên,Quảng Ninh
+quan,Uông Bí,Quảng Ninh
+quan,Vân Đồn,Quảng Ninh
+quan,Yên Hưng,Quảng Ninh
+quan,Hải Hà,Quảng Ninh
+quan,Bắc Giang,Bắc Giang
+quan,Hiệp Hòa,Bắc Giang
+quan,Lạng Giang,Bắc Giang
+quan,Lục Nam,Bắc Giang
+quan,Lục Ngạn,Bắc Giang
+quan,Sơn Động,Bắc Giang
+quan,Tân Yên,Bắc Giang
+quan,Việt Yên,Bắc Giang
+quan,Yên Dũng,Bắc Giang
+quan,Yên Thế,Bắc Giang
+quan,Bắc Ninh,Bắc Ninh
+quan,Gia Bình,Bắc Ninh
+quan,Lương Tài,Bắc Ninh
+quan,Quế Võ,Bắc Ninh
+quan,Thuận Thành,Bắc Ninh
+quan,Tiên Du,Bắc Ninh
+quan,Từ Sơn,Bắc Ninh
+quan,Yên Phong,Bắc Ninh
+quan,Bình Giang,Hải Dương
+quan,Cẩm Giàng,Hải Dương
+quan,Chí Linh,Hải Dương
+quan,Gia Lộc,Hải Dương
+quan,Hải Dương,Hải Dương
+quan,Kim Thành,Hải Dương
+quan,Kinh Môn,Hải Dương
+quan,Nam Sách,Hải Dương
+quan,Ninh Giang,Hải Dương
+quan,Thanh Hà,Hải Dương
+quan,Thanh Miện,Hải Dương
+quan,Tứ Kỳ,Hải Dương
+quan,Ân Thi,Hưng Yên
+quan,Hưng Yên,Hưng Yên
+quan,Khoái Châu,Hưng Yên
+quan,Kim Động,Hưng Yên
+quan,Mỹ Hào,Hưng Yên
+quan,Phù Cừ,Hưng Yên
+quan,Tiên Lữ,Hưng Yên
+quan,Văn Giang,Hưng Yên
+quan,Văn Lâm,Hưng Yên
+quan,Yên Mỹ,Hưng Yên
+quan,Cao Phong,Hòa Bình
+quan,Đà Bắc,Hòa Bình
+quan,Hoà Bình,Hòa Bình
+quan,Kim Bôi,Hòa Bình
+quan,Kỳ Sơn,Hòa Bình
+quan,Lạc Sơn,Hòa Bình
+quan,Lạc Thủy,Hòa Bình
+quan,Lương Sơn,Hòa Bình
+quan,Mai Châu,Hòa Bình
+quan,Tân Lạc,Hòa Bình
+quan,Yên Thủy,Hòa Bình
+quan,Bình Lục,Hà Nam
+quan,Duy Tiên,Hà Nam
+quan,Kim Bảng,Hà Nam
+quan,Lý Nhân,Hà Nam
+quan,Phủ Lý,Hà Nam
+quan,Thanh Liêm,Hà Nam
+quan,Giao Thủy,Nam Định
+quan,Hải Hậu,Nam Định
+quan,Mỹ Lộc,Nam Định
+quan,Nam Định,Nam Định
+quan,Nam Trực,Nam Định
+quan,Nghĩa Hưng,Nam Định
+quan,Trực Ninh,Nam Định
+quan,Vụ Bản,Nam Định
+quan,Xuân Trường,Nam Định
+quan,Ý Yên,Nam Định
+quan,Đông Hưng,Thái Bình
+quan,Hưng Hà,Thái Bình
+quan,Kiến Xương,Thái Bình
+quan,Quỳnh Phụ,Thái Bình
+quan,Thái Bình,Thái Bình
+quan,Thái Thụy,Thái Bình
+quan,Tiền Hải,Thái Bình
+quan,Vũ Thư,Thái Bình
+quan,Gia Viễn,Ninh Bình
+quan,Hoa Lư,Ninh Bình
+quan,Kim Sơn,Ninh Bình
+quan,Nho Quan,Ninh Bình
+quan,Ninh Bình,Ninh Bình
+quan,Tam Điệp,Ninh Bình
+quan,Yên Khánh,Ninh Bình
+quan,Yên Mô,Ninh Bình
+quan,Bá Thước,Thanh Hóa
+quan,Bỉm Sơn,Thanh Hóa
+quan,Cẩm Thủy,Thanh Hóa
+quan,Đông Sơn,Thanh Hóa
+quan,Hà Trung,Thanh Hóa
+quan,Hậu Lộc,Thanh Hóa
+quan,Hoằng Hóa,Thanh Hóa
+quan,Lang Chánh,Thanh Hóa
+quan,Mường Lát,Thanh Hóa
+quan,Nga Sơn,Thanh Hóa
+quan,Ngọc Lặc,Thanh Hóa
+quan,Như Thanh,Thanh Hóa
+quan,Như Xuân,Thanh Hóa
+quan,Nông Cống,Thanh Hóa
+quan,Quan Hóa,Thanh Hóa
+quan,Quan Sơn,Thanh Hóa
+quan,Quảng Xương,Thanh Hóa
+quan,Sầm Sơn,Thanh Hóa
+quan,Thạch Thành,Thanh Hóa
+quan,Thanh Hóa,Thanh Hóa
+quan,Thiệu Hóa,Thanh Hóa
+quan,Thọ Xuân,Thanh Hóa
+quan,Thường Xuân,Thanh Hóa
+quan,Tĩnh Gia,Thanh Hóa
+quan,Triệu Sơn,Thanh Hóa
+quan,Vĩnh Lộc,Thanh Hóa
+quan,Yên Định,Thanh Hóa
+quan,Anh Sơn,Nghệ An
+quan,Con Cuông,Nghệ An
+quan,Cửa Lò,Nghệ An
+quan,Diễn Châu,Nghệ An
+quan,Đô Lương,Nghệ An
+quan,Hưng Nguyên,Nghệ An
+quan,Kỳ Sơn,Nghệ An
+quan,Nam Đàn,Nghệ An
+quan,Nghi Lộc,Nghệ An
+quan,Nghĩa Đàn,Nghệ An
+quan,Quế Phong,Nghệ An
+quan,Quỳ Châu,Nghệ An
+quan,Quỳ Hợp,Nghệ An
+quan,Quỳnh Lưu,Nghệ An
+quan,Tân Kỳ,Nghệ An
+quan,Thái Hòa,Nghệ An
+quan,Thanh Chương,Nghệ An
+quan,Tương Dương,Nghệ An
+quan,Vinh,Nghệ An
+quan,Yên Thành,Nghệ An
+quan,Can Lộc,Hà Tĩnh
+quan,Cẩm Xuyên,Hà Tĩnh
+quan,Đức Thọ,Hà Tĩnh
+quan,Hà Tĩnh,Hà Tĩnh
+quan,Hồng Lĩnh,Hà Tĩnh
+quan,Hương Khê,Hà Tĩnh
+quan,Hương Sơn,Hà Tĩnh
+quan,Kỳ Anh,Hà Tĩnh
+quan,Lộc Hà,Hà Tĩnh
+quan,Nghi Xuân,Hà Tĩnh
+quan,Thạch Hà,Hà Tĩnh
+quan,Vũ Quang,Hà Tĩnh
+quan,Bố Trạch,Quảng Bình
+quan,Đồng Hới,Quảng Bình
+quan,Lệ Thủy,Quảng Bình
+quan,Minh Hóa,Quảng Bình
+quan,Quảng Ninh,Quảng Bình
+quan,Quảng Trạch,Quảng Bình
+quan,Tuyên Hóa,Quảng Bình
+quan,Cam Lộ,Quảng Trị
+quan,Cồn Cỏ,Quảng Trị
+quan,Đa Krông,Quảng Trị
+quan,Đông Hà,Quảng Trị
+quan,Gio Linh,Quảng Trị
+quan,Hải Lăng,Quảng Trị
+quan,Hướng Hóa,Quảng Trị
+quan,Quảng Trị,Quảng Trị
+quan,Triệu Phong,Quảng Trị
+quan,Vĩnh Linh,Quảng Trị
+quan,Huế,Thừa Thiên Huế
+quan,Hương Thủy,Thừa Thiên Huế
+quan,Hương Trà,Thừa Thiên Huế
+quan,Nam Đông,Thừa Thiên Huế
+quan,A Lưới,Thừa Thiên Huế
+quan,Phong Điền,Thừa Thiên Huế
+quan,Phú Lộc,Thừa Thiên Huế
+quan,Phú Vang,Thừa Thiên Huế
+quan,Quảng Điền,Thừa Thiên Huế
+quan,Bắc Trà My,Quảng Nam
+quan,Duy Xuyên,Quảng Nam
+quan,Đại Lộc,Quảng Nam
+quan,Điện Bàn,Quảng Nam
+quan,Đông Giang,Quảng Nam
+quan,Hiệp Đức,Quảng Nam
+quan,Hội An,Quảng Nam
+quan,Nam Giang,Quảng Nam
+quan,Nam Trà My,Quảng Nam
+quan,Núi Thành,Quảng Nam
+quan,Phú Ninh,Quảng Nam
+quan,Phước Sơn,Quảng Nam
+quan,Quế Sơn,Quảng Nam
+quan,Tam Kỳ,Quảng Nam
+quan,Tây Giang,Quảng Nam
+quan,Thăng Bình,Quảng Nam
+quan,Tiên Phước,Quảng Nam
+quan,Nông Sơn,Quảng Nam
+quan,Ba Tơ,Quảng Ngãi
+quan,Bình Sơn,Quảng Ngãi
+quan,Đức Phổ,Quảng Ngãi
+quan,Lý Sơn,Quảng Ngãi
+quan,Minh Long,Quảng Ngãi
+quan,Mộ Đức,Quảng Ngãi
+quan,Nghĩa Hành,Quảng Ngãi
+quan,Quảng Ngãi,Quảng Ngãi
+quan,Sơn Hà,Quảng Ngãi
+quan,Sơn Tây,Quảng Ngãi
+quan,Sơn Tịnh,Quảng Ngãi
+quan,Tây Trà,Quảng Ngãi
+quan,Trà Bồng,Quảng Ngãi
+quan,Tư Nghĩa,Quảng Ngãi
+quan,Đắk Glei,Kon Tum
+quan,Đắk Hà,Kon Tum
+quan,Đăk Tô,Kon Tum
+quan,Kon Plông,Kon Tum
+quan,Kon Rẫy,Kon Tum
+quan,Kon Tum,Kon Tum
+quan,Ngọc Hồi,Kon Tum
+quan,Sa Thầy,Kon Tum
+quan,Tu Mơ Rông,Kon Tum
+quan,An Lão,Bình Định
+quan,An Nhơn,Bình Định
+quan,Hoài Ân,Bình Định
+quan,Hoài Nhơn,Bình Định
+quan,Phù Cát,Bình Định
+quan,Phù Mỹ,Bình Định
+quan,Qui Nhơn,Bình Định
+quan,Tây Sơn,Bình Định
+quan,Tuy Phước,Bình Định
+quan,Vân Canh,Bình Định
+quan,Vĩnh Thạnh,Bình Định
+quan,An Khê,Gia Lai
+quan,Ayun Pa,Gia Lai
+quan,Chư Păh,Gia Lai
+quan,Chư Prông,Gia Lai
+quan,Chư Sê,Gia Lai
+quan,Đăk Đoa,Gia Lai
+quan,Đắk Pơ,Gia Lai
+quan,Đức Cơ,Gia Lai
+quan,Ia Grai,Gia Lai
+quan,Ia Pa,Gia Lai
+quan,KBang,Gia Lai
+quan,Kông Chro,Gia Lai
+quan,Krông Pa,Gia Lai
+quan,Mang Yang,Gia Lai
+quan,Phú Thiện,Gia Lai
+quan,Pleiku,Gia Lai
+quan,Chư Pưh,Gia Lai
+quan,Đông Hòa,Phú Yên
+quan,Đồng Xuân,Phú Yên
+quan,Phú Hòa,Phú Yên
+quan,Sông Cầu,Phú Yên
+quan,Sông Hinh,Phú Yên
+quan,Sơn Hòa,Phú Yên
+quan,Tây Hòa,Phú Yên
+quan,Tuy An,Phú Yên
+quan,Tuy Hòa,Phú Yên
+quan,Buôn Đôn,Đắk Lắk
+quan,Buôn Ma Thuột,Đắk Lắk
+quan,Cư Kuin,Đắk Lắk
+quan,Ea Kar,Đắk Lắk
+quan,Ea Súp,Đắk Lắk
+quan,Krông Ana,Đắk Lắk
+quan,Krông Bông,Đắk Lắk
+quan,Krông Búk,Đắk Lắk
+quan,Krông Năng,Đắk Lắk
+quan,Krông Pắk,Đắk Lắk
+quan,Lăk,Đắk Lắk
+quan,Buôn Hồ,Đắk Lắk
+quan,Cam Ranh,Khánh Hòa
+quan,Diên Khánh,Khánh Hòa
+quan,Khánh Sơn,Khánh Hòa
+quan,Khánh Vĩnh,Khánh Hòa
+quan,Nha Trang,Khánh Hòa
+quan,Ninh Hòa,Khánh Hòa
+quan,Trường Sa,Khánh Hòa
+quan,Vạn Ninh,Khánh Hòa
+quan,Cam Lâm,Khánh Hòa
+quan,Bảo Lâm,Lâm Đồng
+quan,Bảo Lộc,Lâm Đồng
+quan,Cát Tiên,Lâm Đồng
+quan,Di Linh,Lâm Đồng
+quan,Đà Lạt,Lâm Đồng
+quan,Đạ Huoai,Lâm Đồng
+quan,Đạ Tẻh,Lâm Đồng
+quan,Đam Rông,Lâm Đồng
+quan,Đơn Dương,Lâm Đồng
+quan,Đức Trọng,Lâm Đồng
+quan,Lạc Dương,Lâm Đồng
+quan,Lâm Hà,Lâm Đồng
+quan,Bình Long,Bình Phước
+quan,Bù Đăng,Bình Phước
+quan,Bù Đốp,Bình Phước
+quan,Chơn Thành,Bình Phước
+quan,Đồng Phú,Bình Phước
+quan,Đồng Xoài,Bình Phước
+quan,Lộc Ninh,Bình Phước
+quan,Phước Long,Bình Phước
+quan,Hớn Quản,Bình Phước
+quan,Bù Gia Mập,Bình Phước
+quan,Bến Cát,Bình Dương
+quan,Dầu Tiếng,Bình Dương
+quan,Dĩ An,Bình Dương
+quan,Phú Giáo,Bình Dương
+quan,Tân Uyên,Bình Dương
+quan,Thủ Dầu Một,Bình Dương
+quan,Thuận An,Bình Dương
+quan,Bác Ái,Ninh Thuận
+quan,Ninh Hải,Ninh Thuận
+quan,Ninh Phước,Ninh Thuận
+quan,Ninh Sơn,Ninh Thuận
+quan,Phan Rang-Tháp Chàm,Ninh Thuận
+quan,Thuận Bắc,Ninh Thuận
+quan,Thuận Nam,Ninh Thuận
+quan,Bến Cầu,Tây Ninh
+quan,Châu Thành,Tây Ninh
+quan,Dương Minh Châu,Tây Ninh
+quan,Gò Dầu,Tây Ninh
+quan,Hòa Thành,Tây Ninh
+quan,Tân Biên,Tây Ninh
+quan,Tân Châu,Tây Ninh
+quan,Tây Ninh,Tây Ninh
+quan,Trảng Bàng,Tây Ninh
+quan,Bắc Bình,Bình Thuận
+quan,Đức Linh,Bình Thuận
+quan,Hàm Tân,Bình Thuận
+quan,Hàm Thuận Bắc,Bình Thuận
+quan,Hàm Thuận Nam,Bình Thuận
+quan,La Gi,Bình Thuận
+quan,Phan Thiết,Bình Thuận
+quan,Phú Quý,Bình Thuận
+quan,Tánh Linh,Bình Thuận
+quan,Tuy Phong,Bình Thuận
+quan,Biên Hòa,Đồng Nai
+quan,Cẩm Mỹ,Đồng Nai
+quan,Định Quán,Đồng Nai
+quan,Long Khánh,Đồng Nai
+quan,Long Thành,Đồng Nai
+quan,Nhơn Trạch,Đồng Nai
+quan,Thống Nhất,Đồng Nai
+quan,Trảng Bom,Đồng Nai
+quan,Vĩnh Cửu,Đồng Nai
+quan,Xuân Lộc,Đồng Nai
+quan,Tân Phú,Đồng Nai
+quan,Bến Lức,Long An
+quan,Cần Đước,Long An
+quan,Cần Giuộc,Long An
+quan,Châu Thành,Long An
+quan,Đức Hòa,Long An
+quan,Đức Huệ,Long An
+quan,Mộc Hóa,Long An
+quan,Tân An,Long An
+quan,Tân Hưng,Long An
+quan,Tân Thạnh,Long An
+quan,Tân Trụ,Long An
+quan,Thạnh Hóa,Long An
+quan,Thủ Thừa,Long An
+quan,Vĩnh Hưng,Long An
+quan,Cao Lãnh,Đồng Tháp
+quan,Châu Thành,Đồng Tháp
+quan,Hồng Ngự,Đồng Tháp
+quan,Lai Vung,Đồng Tháp
+quan,Lấp Vò,Đồng Tháp
+quan,Sa Đéc,Đồng Tháp
+quan,Tam Nông,Đồng Tháp
+quan,Tân Hồng,Đồng Tháp
+quan,Thanh Bình,Đồng Tháp
+quan,Tháp Mười,Đồng Tháp
+quan,An Phú,An Giang
+quan,Châu Đốc,An Giang
+quan,Châu Phú,An Giang
+quan,Châu Thành,An Giang
+quan,Chợ Mới,An Giang
+quan,Long Xuyên,An Giang
+quan,Phú Tân,An Giang
+quan,Tân Châu,An Giang
+quan,Thoại Sơn,An Giang
+quan,Tịnh Biên,An Giang
+quan,Tri Tôn,An Giang
+quan,Tân Thành,Bà Rịa Vũng Tàu
+quan,Vũng Tàu,Bà Rịa Vũng Tàu
+quan,Xuyên Mộc,Bà Rịa Vũng Tàu
+quan,Bà Rịa,Bà Rịa Vũng Tàu
+quan,Châu Đức,Bà Rịa Vũng Tàu
+quan,Côn Đảo,Bà Rịa Vũng Tàu
+quan,Đất Đỏ,Bà Rịa Vũng Tàu
+quan,Long Điền,Bà Rịa Vũng Tàu
+quan,Cai Lậy,Tiền Giang
+quan,Cái Bè,Tiền Giang
+quan,Châu Thành,Tiền Giang
+quan,Chợ Gạo,Tiền Giang
+quan,Gò Công,Tiền Giang
+quan,Gò Công Đông,Tiền Giang
+quan,Gò Công Tây,Tiền Giang
+quan,Mỹ Tho,Tiền Giang
+quan,Tân Phú Đông,Tiền Giang
+quan,Tân Phước,Tiền Giang
+quan,An Biên,Kiên Giang
+quan,An Minh,Kiên Giang
+quan,Châu Thành,Kiên Giang
+quan,Giồng Riềng,Kiên Giang
+quan,Gò Quao,Kiên Giang
+quan,Hà Tiên,Kiên Giang
+quan,Hòn Đất,Kiên Giang
+quan,Kiên Hải,Kiên Giang
+quan,Kiên Lương,Kiên Giang
+quan,Phú Quốc,Kiên Giang
+quan,Rạch Giá,Kiên Giang
+quan,Tân Hiệp,Kiên Giang
+quan,U Minh Thượng,Kiên Giang
+quan,Vĩnh Thuận,Kiên Giang
+quan,Giang Thành,Kiên Giang
+quan,Bình Thủy,Cần Thơ
+quan,Cái Răng,Cần Thơ
+quan,Cờ Đỏ,Cần Thơ
+quan,Ninh Kiều,Cần Thơ
+quan,Ô Môn,Cần Thơ
+quan,Phong Điền,Cần Thơ
+quan,Thốt Nốt,Cần Thơ
+quan,Vĩnh Thạnh,Cần Thơ
+quan,Thới Lai,Cần Thơ
+quan,Ba Tri,Bến Tre
+quan,Bến Tre,Bến Tre
+quan,Bình Đại,Bến Tre
+quan,Châu Thành,Bến Tre
+quan,Chợ Lách,Bến Tre
+quan,Giồng Trôm,Bến Tre
+quan,Mỏ Cày Bắc,Bến Tre
+quan,Mỏ Cày Nam,Bến Tre
+quan,Thạnh Phú,Bến Tre
+quan,Bình Minh,Vĩnh Long
+quan,Bình Tân,Vĩnh Long
+quan,Long Hồ,Vĩnh Long
+quan,Mang Thít,Vĩnh Long
+quan,Tam Bình,Vĩnh Long
+quan,Trà Ôn,Vĩnh Long
+quan,Vĩnh Long,Vĩnh Long
+quan,Vũng Liêm,Vĩnh Long
+quan,Càng Long,Trà Vinh
+quan,Cầu Kè,Trà Vinh
+quan,Cầu Ngang,Trà Vinh
+quan,Châu Thành,Trà Vinh
+quan,Duyên Hải,Trà Vinh
+quan,Tiểu Cần,Trà Vinh
+quan,Trà Cú,Trà Vinh
+quan,Trà Vinh,Trà Vinh
+quan,Trần Đề,Sóc Trăng
+quan,Cù Lao Dung,Sóc Trăng
+quan,Kế Sách,Sóc Trăng
+quan,Long Phú,Sóc Trăng
+quan,Mỹ Tú,Sóc Trăng
+quan,Mỹ Xuyên,Sóc Trăng
+quan,Ngã Năm,Sóc Trăng
+quan,Sóc Trăng,Sóc Trăng
+quan,Thạnh Trị,Sóc Trăng
+quan,Vĩnh Châu,Sóc Trăng
+quan,Châu Thành,Sóc Trăng
+quan,Bạc Liêu,Bạc Liêu
+quan,Đông Hải,Bạc Liêu
+quan,Giá Rai,Bạc Liêu
+quan,Hoà Bình,Bạc Liêu
+quan,Hồng Dân,Bạc Liêu
+quan,Phước Long,Bạc Liêu
+quan,Vĩnh Lợi,Bạc Liêu
+quan,Cà Mau,Cà Mau
+quan,Cái Nước,Cà Mau
+quan,Đầm Dơi,Cà Mau
+quan,Năm Căn,Cà Mau
+quan,Ngọc Hiển,Cà Mau
+quan,Phú Tân,Cà Mau
+quan,Thới Bình,Cà Mau
+quan,Trần Văn Thời,Cà Mau
+quan,U Minh,Cà Mau
+quan,Điện Biên,Điện Biên
+quan,Điện Biên Đông,Điện Biên
+quan,Điện Biên Phủ,Điện Biên
+quan,Mường Ảng,Điện Biên
+quan,Mường Chà,Điện Biên
+quan,Mường Lay,Điện Biên
+quan,Mường Nhé,Điện Biên
+quan,Tủa Chùa,Điện Biên
+quan,Tuần Giáo,Điện Biên
+quan,Cư Jút,Đắk Nông
+quan,Đăk Glong,Đắk Nông
+quan,Đăk Mil,Đắk Nông
+quan,Đăk Song,Đắk Nông
+quan,Gia Nghĩa,Đắk Nông
+quan,Krông Nô,Đắk Nông
+quan,Tuy Đức,Đắk Nông
+quan,Châu Thành,Hậu Giang
+quan,Châu Thành A,Hậu Giang
+quan,Long Mỹ,Hậu Giang
+quan,Phụng Hiệp,Hậu Giang
+quan,Ngã Bảy,Hậu Giang
+quan,Vị Thanh,Hậu Giang
+quan,Vị Thủy,Hậu Giang
+quan,Bàu Bàng,Bình Dương
+quan,Bắc Tân Uyên,Bình Dương
+quan,Phú Riềng,Bình Phước
+quan,Nậm Nhùm,Lai Châu
+quan,Kiến Tường,Long An
+quan,Hoàng Mai,Nghệ An
+quan,Ba Đồn,Quảng Bình
+quan,Quảng Yên,Quảng Ninh
+quan,Vân Hồ,Phú Thọ
+quan,Duyên Hải,Trà Vinh
+quan,Lâm Bình,Tuyên Quang
+quan,Nam Từ Liêm,Hà Nội
+quan,Bắc Từ Liêm,Hà Nội
+quan,Cư M'gar,Đắk Lắk
+quan,Ea H'leo,Đắk Lắk
+quan,M'Đrăk,Đắk Lắk
+quan,Đăk R'Lấp,Đắk Nông

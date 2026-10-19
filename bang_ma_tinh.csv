@@ -1,0 +1,43 @@
+﻿rg,ten_tinh,do_tin_cay,ghi_chu
+03,Cao Bằng,cao,text: 'Phường Thục Phán' (crosswalk: chỉ có ở Cao Bằng)
+05,Lạng Sơn,cao,text: 'Xã Hữu Lũng'/'Phường Kỳ Lừa' (crosswalk: Lạng Sơn); 1/3 mẫu quận mơ hồ nhưng Rg giúp lọc đúng
+07,Quảng Ninh,cao,text: 'Phường Mạo Khê/Cẩm Phả/Hà Lầm' (Đông Triều/Cẩm Phả/Hạ Long)
+08,Thái Nguyên,cao,text: 'Phường Phổ Yên'/'Thành phố Thái Nguyên'
+10,Yên Bái,cao,"text: 'Phường Yên Bái' (tên thành phố tỉnh lỵ cũ, không lẫn)"
+12,Điện Biên,cao,text: 'Phường Điện Biên Phủ'
+16,Bắc Giang,thap,"text: 'phường Bắc Giang', không có địa chỉ khớp"
+24,Hà Nội,cao,khớp 13/13 địa chỉ
+25,Hải Dương,thap,khớp 1/2 địa chỉ
+26,Hà Tĩnh,cao,"text: 'Phường Thành Sen' (TP Hà Tĩnh), 'Thị xã Hồng Lĩnh'"
+27,Nghệ An,cao,khớp 3/3 địa chỉ
+28,Quảng Bình,cao,"text: 'Thành Phố Đồng Hới', 'Huyện Bố Trạch'"
+29,Quảng Bình,cao,khớp 1/1 địa chỉ
+30,Thái Nguyên,thap,"text: 'Xã Linh Sơn', không có địa chỉ khớp"
+31,Thừa Thiên Huế,cao,khớp 2/2 địa chỉ
+32,Đắk Lắk,cao,khớp 5/5 địa chỉ
+33,Đắk Nông,cao,khớp 1/1 địa chỉ
+34,Gia Lai,thap,text: 'Thành Phố PleiKu'; khớp tự động lẫn với 37
+35,Kon Tum,cao,text: 'Thành phố Kon Tum'
+37,Bình Định,thap,text: 'Thành Phố Quy Nhơn'; khớp tự động lẫn với 34
+38,Bình Thuận,cao,khớp 1/1 địa chỉ
+39,Khánh Hòa,cao,khớp 7/7 địa chỉ
+40,Ninh Thuận,cao,khớp 1/1 địa chỉ
+41,Phú Yên,cao,text: 'Thành Phố Tuy Hòa'
+42,Quảng Nam,cao,khớp 1/1 địa chỉ
+43,Quảng Ngãi,thap,khớp 1/2 địa chỉ
+44,Đà Nẵng,cao,khớp 13/14 địa chỉ
+45,Bà Rịa Vũng Tàu,cao,khớp 2/2 địa chỉ
+46,Bình Dương,cao,khớp 4/4 địa chỉ
+48,Đồng Nai,cao,khớp 7/7 địa chỉ
+49,Tây Ninh,cao,khớp 7/9 địa chỉ
+50,Hồ Chí Minh,cao,khớp 86/107 địa chỉ
+51,An Giang,thap,khớp 3/6 địa chỉ
+52,Bạc Liêu,cao,text: 'Thành Phố Bạc Liêu'
+53,Bến Tre,thap,"chỉ 2 mẫu, 1 mẫu rõ 'Thành Phố Bến Tre', 1 mẫu mơ hồ"
+54,Bạc Liêu,thap,khớp 1/2 địa chỉ
+56,Hậu Giang,cao,text: 'Thành phố Vị Thanh' (tỉnh lỵ cũ Hậu Giang)
+57,Kiên Giang,cao,khớp 1/1 địa chỉ
+58,Long An,cao,khớp 1/1 địa chỉ
+60,Tiền Giang,cao,khớp 1/1 địa chỉ
+62,Vĩnh Long,thap,khớp 2/3 địa chỉ
+63,Cần Thơ,thap,khớp 6/9 địa chỉ
