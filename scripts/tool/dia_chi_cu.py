@@ -39,6 +39,36 @@ _NGOAI_LE_TINH = re.compile(r"^tịnh\s+", re.IGNORECASE)
 # bị cắt bình thường ở nhánh khác.
 _TU_DAU_QUAN = re.compile(r"^(qu[aậảâ]n)\s+", re.IGNORECASE)
 
+# Hậu tố cấp hành chính kiểu TIẾNG ANH, khớp ở CUỐI chuỗi (ngược hướng _TIEN_TO) — SAP đôi
+# khi xuất địa chỉ của kho/chi nhánh nội bộ bằng tiếng Anh, cấp hành chính nằm sau tên thay vì
+# trước như tiếng Việt (vd "Bien Hoa City" thay vì "Thành phố Biên Hòa"). Phát hiện 20/10/2026
+# qua ca thật "10 Phan Dang Luu St, Quarter 7, Long Binh Ward, Bien Hoa City, Dong Nai
+# province" — đo trên data SAP thật chỉ ~1% Delivery dùng kiểu này (toàn bộ là kho nội bộ
+# Hafele), nhưng vẫn hỏng hoàn toàn vì _TIEN_TO/_QUAN_PRE/_PHUONG_PRE/_TINH_PRE chỉ nhận tiền tố.
+# 'city' CỐ Ý không gán cấp cố định: đo thật cùng 1 field SAP vừa dùng "Bien Hoa City" (cấp
+# Quận/Huyện, TP thuộc tỉnh) vừa dùng "Ho Chi Minh City" (cấp Tỉnh) — không nhất quán, để
+# "khong_ro" cho thử khớp cả 2 vai trò, giống nhánh "thanh pho"/"tp" tiếng Việt.
+_HAU_TO_ANH = re.compile(
+    r"\s+(ward|commune|town|district|province|city)$", re.IGNORECASE)
+_HAU_TO_ANH_CAP = {
+    "ward": "phuong", "commune": "phuong", "town": "phuong",
+    "district": "quan", "province": "tinh", "city": "khong_ro",
+}
+# Phân biệt RIÊNG Phường/Xã/Thị trấn cho hậu tố tiếng Anh, tương ứng _loai_rieng_phuong():
+# "Town" dịch "Thị trấn" (cấp xã/phường, KHÔNG phải cấp quận dù nghe giống "thị xã"/"thành
+# phố" tiếng Việt), "Commune" dịch "Xã", "Ward" dịch "Phường".
+_HAU_TO_ANH_LOAI_RIENG = {"ward": "phuong", "commune": "xa", "town": "thi_tran"}
+
+
+def _cat_hau_to_anh(s):
+    """Bỏ hậu tố hành chính tiếng Anh ở CUỐI chuỗi (nếu có) -> (phần còn lại, cấp|None).
+    Không có hậu tố -> (chuỗi gốc, None)."""
+    s = str(s)
+    m = _HAU_TO_ANH.search(s.strip())
+    if not m:
+        return s, None
+    return s.strip()[:m.start()].strip(), m.group(1).lower()
+
 
 def _la_ten_rieng_quan(s):
     m = _TU_DAU_QUAN.match(s.strip())
@@ -57,6 +87,7 @@ def chuan_ten(s):
     """'Quận Ba Đình' -> 'ba dinh'. Quy y->i để bắt 'Quy Nhơn' == 'Qui Nhơn'."""
     s = str(s)
     la_ten_rieng = bool(_NGOAI_LE_TINH.match(s.strip())) or _la_ten_rieng_quan(s)
+    s, _ = _cat_hau_to_anh(s)
     s = unicodedata.normalize("NFD", s)
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     s = s.replace("đ", "d").replace("Đ", "D").lower()
@@ -233,6 +264,9 @@ def _loai_rieng_phuong(manh_goc):
         return "xa"
     if _THITRAN_RIENG.match(t):
         return "thi_tran"
+    _, hau_to = _cat_hau_to_anh(t)
+    if hau_to:
+        return _HAU_TO_ANH_LOAI_RIENG.get(hau_to)
     return None
 
 
@@ -253,7 +287,8 @@ def _phan_loai_manh(manh_goc):
     elif _TINH_PRE.match(t):
         cap = "tinh"
     else:
-        cap = "khong_ro"
+        _, hau_to = _cat_hau_to_anh(t)
+        cap = _HAU_TO_ANH_CAP.get(hau_to, "khong_ro")
     return cap, chuan_ten(manh_goc)
 
 

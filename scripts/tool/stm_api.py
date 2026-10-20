@@ -20,16 +20,20 @@ COT_HEADER_SOLDTO_SHIPTO = [
 ]
 
 
-def _dong_soldto(stt, ma):
-    return [stt, "Distributor", ma, ma, ma, "", ma, ma, ma, ma, "", "", "", ""] + \
+def _dong_soldto(stt, ma, ten=""):
+    ten = ten or ma  # khong tra duoc ten that (vd SAP thieu "Sold-to party") -> dung tam ma
+    return [stt, "Distributor", ma, ma, ten, "", ma, ma, ma, ma, "", "", "", ""] + \
         [""] * (len(COT_HEADER_SOLDTO_SHIPTO) - 14)
 
 
-def _dong_shipto(stt, ma_soldto, ma_shipto, dia_chi, tinh, quan, lat="", lng=""):
+def _dong_shipto(stt, ma_soldto, ma_shipto, dia_chi, tinh, quan, ten="", lat="", lng=""):
+    ten = ten or ma_shipto  # tuong tu _dong_soldto - thieu ten that thi tam dung ma
     dong = [""] * len(COT_HEADER_SOLDTO_SHIPTO)
     dong[0], dong[1] = stt, "Distributor"
     dong[2] = dong[3] = dong[4] = ma_soldto
-    dong[6] = dong[7] = dong[8] = dong[9] = ma_shipto
+    dong[6] = ma_shipto
+    dong[7] = dong[9] = ten
+    dong[8] = ma_shipto
     dong[10], dong[11], dong[12] = dia_chi, tinh, quan
     dong[22] = lng  # "Kinh độ" = longitude
     dong[23] = lat  # "Vĩ độ" = latitude
@@ -37,11 +41,14 @@ def _dong_shipto(stt, ma_soldto, ma_shipto, dia_chi, tinh, quan, lat="", lng="")
 
 
 def ghi_file_soldto_shipto(duong_dan, can_tao_moi):
-    """can_tao_moi: {"soldto": [ma, ...], "shipto": [{"ma_soldto","ma_shipto","dia_chi",
-    "tinh","quan"}, ...]}. Không ghi file nếu không có gì cần tạo."""
+    """can_tao_moi: {"soldto": [ma, ...], "ten_soldto": {ma: ten}, "shipto": [{"ma_soldto",
+    "ma_shipto","dia_chi","tinh","quan","ten"}, ...]}. "ten"/"ten_soldto" lấy từ SAP (xem
+    dung_bang.py "_ten_soldto" và "M") - rỗng hoặc thiếu hẳn khoá (file can_tao_moi cũ chưa
+    có tên) thì tạm dùng mã, không crash. Không ghi file nếu không có gì cần tạo."""
     if not can_tao_moi["soldto"] and not can_tao_moi["shipto"]:
         return
 
+    ten_soldto = can_tao_moi.get("ten_soldto", {})
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Sheet1"
@@ -49,11 +56,12 @@ def ghi_file_soldto_shipto(duong_dan, can_tao_moi):
 
     stt = 1
     for ma in can_tao_moi["soldto"]:
-        ws.append(_dong_soldto(stt, ma))
+        ws.append(_dong_soldto(stt, ma, ten_soldto.get(ma, "")))
         stt += 1
     for sp in can_tao_moi["shipto"]:
         ws.append(_dong_shipto(stt, sp["ma_soldto"], sp["ma_shipto"], sp["dia_chi"],
-                                sp["tinh"], sp["quan"], sp.get("lat", ""), sp.get("lng", "")))
+                                sp["tinh"], sp["quan"], sp.get("ten", ""),
+                                sp.get("lat", ""), sp.get("lng", "")))
         stt += 1
 
     wb.save(duong_dan)

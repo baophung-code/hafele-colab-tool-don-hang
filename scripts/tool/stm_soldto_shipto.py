@@ -129,7 +129,7 @@ def xu_ly(dong, cache, du_lieu, lay_toa_do=None, cho_phep_tao_moi=True):
     thong_ke = {"soldto_moi": set(), "shipto_moi": set(), "shipto_tai_dung": set(),
                 "loi": set(), "canh_bao_cache_sai": set(), "bo_qua_thieu_dia_chi": set(),
                 "bo_qua_khong_co_toa_do": set(),
-                "can_tao_moi": {"soldto": [], "shipto": []}}
+                "can_tao_moi": {"soldto": [], "shipto": [], "ten_soldto": {}}}
 
     theo_soldto = {}
     for r in dong:
@@ -227,12 +227,14 @@ def xu_ly(dong, cache, du_lieu, lay_toa_do=None, cho_phep_tao_moi=True):
             if ma_soldto not in cache["soldto"]:
                 them_soldto(cache, ma_soldto)
                 thong_ke["can_tao_moi"]["soldto"].append(ma_soldto)
+                thong_ke["can_tao_moi"]["ten_soldto"][ma_soldto] = r0.get("_ten_soldto", "")
                 thong_ke["soldto_moi"].add(ma_soldto)
 
             them_shipto(cache, ma_soldto, ma_moi, r0["N"], r0["O"], r0["P"])
             thong_ke["can_tao_moi"]["shipto"].append(
                 {"ma_soldto": ma_soldto, "ma_shipto": ma_moi, "dia_chi": r0["N"],
-                 "tinh": r0["O"], "quan": r0["P"], "lat": lat, "lng": lng})
+                 "tinh": r0["O"], "quan": r0["P"], "ten": r0.get("M", ""),
+                 "lat": lat, "lng": lng})
             thong_ke["shipto_moi"].add(ma_moi)
 
     return thong_ke

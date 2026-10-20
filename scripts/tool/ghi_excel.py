@@ -27,6 +27,14 @@ TEN_COT = [
 # được nữa, phải liệt kê tay đúng thứ tự cột thật. "AB" (cuối, "Lý do cảnh báo")
 # không phải khoá thường có trong dong[i] -> ghi riêng từ r["_ly_do"], xem _sheet_upload.
 KHOA = [k for k in "ABCDEFGHIJKLMNOPQRSTUVW" if k != "H"] + ["Z", "X", "Y", "AA", "AB"]
+
+# Sheet ẩn mang Mã Sold to -> Tên Sold to (DO."Sold-to party") sang Bước 2
+# (stm_soldto_shipto.xu_ly/stm_api.ghi_file_soldto_shipto) - file upload đơn hàng KHÔNG có
+# cột nào chứa tên Sold-to (template chỉ có mã), nên không thể thêm vào sheet "Upload" mà
+# STM đọc. Khách chốt 20/10/2026: dùng sheet ẩn trong CHÍNH file này thay vì file .json rời
+# (dễ bị khách làm thất lạc) hoặc thêm cột hiển thị (phải hỏi lại STM có chấp nhận không).
+SHEET_TEN_SOLDTO = "_TenSoldTo"
+COT_TEN_SOLDTO = ["Mã Sold to", "Tên Sold to"]
 VANG = PatternFill("solid", start_color="FFF2CC", end_color="FFF2CC")
 DINH_DANG_NGAY = {"D": "dd/mm/yyyy", "T": "dd/mm/yyyy hh:mm",
                   "U": "dd/mm/yyyy hh:mm", "W": "dd/mm/yyyy hh:mm"}
@@ -72,6 +80,7 @@ def don_theo_nhom(canh_bao):
 def ghi_file(duong_dan, dong):
     wb = openpyxl.Workbook()
     _sheet_upload(wb.active, dong)
+    _sheet_ten_soldto(wb, dong)
     try:
         wb.save(duong_dan)
     except PermissionError:
@@ -111,22 +120,57 @@ def _sheet_upload(ws, dong):
         ws.column_dimensions[get_column_letter(KHOA.index(k) + 1)].width = w
 
 
+def _sheet_ten_soldto(wb, dong):
+    """Ghi sheet ẩn (xem SHEET_TEN_SOLDTO) - mỗi Mã Sold to 1 dòng, lấy tên THẬT đầu tiên
+    gặp (r['_ten_soldto'], xem dung_bang.py). Thiếu khoá/tên rỗng -> vẫn ghi dòng với tên
+    rỗng, không crash (Bước 2 khi đó để trống, giống hành vi cũ)."""
+    ten_theo_ma = {}
+    for r in dong:
+        ma = r.get("K", "")
+        if not ma or ma in ten_theo_ma:
+            continue
+        ten_theo_ma[ma] = r.get("_ten_soldto", "")
+    ws = wb.create_sheet(SHEET_TEN_SOLDTO)
+    ws.append(COT_TEN_SOLDTO)
+    for ma, ten in ten_theo_ma.items():
+        ws.append([ma, ten])
+    ws.sheet_state = "hidden"
+
+
+def _doc_ten_soldto(wb):
+    """-> {ma_soldto: ten}. Không có sheet (file cũ trước khi có tính năng này) -> {}."""
+    if SHEET_TEN_SOLDTO not in wb.sheetnames:
+        return {}
+    ws = wb[SHEET_TEN_SOLDTO]
+    ket_qua = {}
+    for i in range(2, ws.max_row + 1):
+        ma = ws.cell(i, 1).value
+        if ma:
+            ket_qua[ma] = ws.cell(i, 2).value or ""
+    return ket_qua
+
+
 def doc_lai_upload(duong_dan):
     """Đọc lại sheet 'Upload' đã xuất (có thể đã được khách sửa tay trong Excel) -> list[dict]
-    theo khoá K/L/N/O/P, kèm '_hang' (số dòng Excel thật, bắt đầu từ 2) để `ghi_de_upload()`
-    biết ghi đè đúng ô. Dùng cho Bước 2 (main.tao_file_soldto_shipto)."""
+    theo khoá K/L/M/N/O/P + '_ten_soldto' (tra theo K từ sheet ẩn SHEET_TEN_SOLDTO, xem
+    _sheet_ten_soldto), kèm '_hang' (số dòng Excel thật, bắt đầu từ 2) để `ghi_de_upload()`
+    biết ghi đè đúng ô. Dùng cho Bước 2 (main.tao_file_soldto_shipto) - 'M' (Tên Ship to) và
+    '_ten_soldto' chỉ dùng để điền tên thật vào file upload_soldto_shipto, không ghi đè lại
+    file upload đơn hàng."""
     wb = openpyxl.load_workbook(duong_dan, data_only=True)
     try:
         ws = wb["Upload"]
+        ten_soldto = _doc_ten_soldto(wb)
         ket_qua = []
         so_cot = len(KHOA)
         for i in range(2, ws.max_row + 1):
             if all(ws.cell(i, j).value in (None, "") for j in range(1, so_cot + 1)):
                 continue
             d = {"_hang": i}
-            for k in ("K", "L", "N", "O", "P"):
+            for k in ("K", "L", "M", "N", "O", "P"):
                 v = ws.cell(i, KHOA.index(k) + 1).value
                 d[k] = "" if v is None else v
+            d["_ten_soldto"] = ten_soldto.get(d["K"], "")
             ket_qua.append(d)
         return ket_qua
     finally:
