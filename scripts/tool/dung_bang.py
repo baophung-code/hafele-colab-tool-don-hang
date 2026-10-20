@@ -20,6 +20,21 @@ MA_HINH_THUC_THANH_TOAN_MAC_DINH = "Congno"
 # Cặp (Mã điểm lấy hàng, Mã Ship to) coi là chuyển kho nội bộ, không phải giao khách.
 KHO_NOI_BO = {"VN10", "VN20"}
 
+# Mã hàng là phí (vận chuyển/lắp đặt/phạt hợp đồng...), không phải hàng hóa thật
+# -> loại bỏ khỏi file upload, không cảnh báo. Khách chốt danh sách 20/10/2026.
+MA_HANG_PHI = {
+    "999.11.001", "999.11.009", "999.11.064", "999.11.310", "999.11.311", "999.11.313",
+    "999.11.314", "999.11.315", "999.11.316", "999.11.317", "999.11.319", "999.11.321",
+    "999.11.322", "999.11.323", "999.11.324", "999.11.327", "999.11.328", "999.11.329",
+    "999.11.330", "999.11.332", "999.11.333", "999.11.335", "999.11.338", "999.11.345",
+    "999.11.346", "999.11.348", "999.11.349", "999.11.369", "999.11.370", "999.11.371",
+    "999.11.372", "999.11.373", "999.11.374", "999.11.376", "999.11.377", "999.11.378",
+    "999.11.379", "999.11.380", "999.11.382", "999.11.386", "999.11.400", "999.11.410",
+    "999.11.411", "999.11.417", "999.11.418", "999.11.419", "999.11.420", "999.11.421",
+    "999.11.422", "999.11.423", "999.11.424", "999.11.425", "999.11.426", "999.11.428",
+    "999.11.429", "999.11.430", "999.11.431", "999.11.432",
+}
+
 
 def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh, tra_dc):
     """-> (dong, canh_bao)
@@ -71,6 +86,9 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
         d = do_theo_odo.get(odo)
         if d is None:
             continue                        # ngoài phạm vi driver — bỏ, không cảnh báo
+
+        if str(it.get("Material", "")).strip() in MA_HANG_PHI:
+            continue                        # mã phí, không phải hàng hóa — bỏ, không cảnh báo
 
         thieu, ly_do_dong, chi_tiet_dong = [], [], {}
 
