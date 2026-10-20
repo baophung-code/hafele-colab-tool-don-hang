@@ -23,16 +23,38 @@ _TIEN_TO = re.compile(
 # dấu, lúc còn phân biệt được 2 dấu thanh.
 _NGOAI_LE_TINH = re.compile(r"^tịnh\s+", re.IGNORECASE)
 
+# Cùng họ bug với 'Tịnh Biên': huyện Quản Bạ (Hà Giang), Quan Hóa/Quan Sơn (Thanh
+# Hóa) là TÊN RIÊNG thật, nhưng 'Quản'/'Quan' mất dấu thanh sau NFD-strip giống
+# hệt tiền tố 'Quận ' (dấu nặng) -> _TIEN_TO cắt oan thành 'Bạ'/'Hóa'/'Sơn'. Phát
+# hiện 20/10/2026 qua scripts/kiem_tra_ten_quan_stm.py. CHỈ liệt kê đích danh 2 tên
+# riêng chắc chắn này (không chặn mọi 'Quan X' nói chung) để không phá khả năng
+# nhận 'Quan 1' = 'Quận 1' viết tắt không dấu — tiền tố 'quận' (dấu nặng) thật vẫn
+# bị cắt bình thường ở nhánh khác.
+_TU_DAU_QUAN = re.compile(r"^(qu[aậảâ]n)\s+", re.IGNORECASE)
+
+
+def _la_ten_rieng_quan(s):
+    m = _TU_DAU_QUAN.match(s.strip())
+    if not m or m.group(1).lower() in ("quận",):
+        return False
+    phan_sau = s.strip()[m.end():]
+    phan_sau = unicodedata.normalize("NFD", phan_sau)
+    phan_sau = "".join(c for c in phan_sau if unicodedata.category(c) != "Mn").lower()
+    tu_dau = m.group(1).lower()
+    if tu_dau == "quản":
+        return phan_sau.startswith("ba")
+    return phan_sau.startswith("hoa") or phan_sau.startswith("son")
+
 
 def chuan_ten(s):
     """'Quận Ba Đình' -> 'ba dinh'. Quy y->i để bắt 'Quy Nhơn' == 'Qui Nhơn'."""
     s = str(s)
-    la_ten_rieng_tinh = bool(_NGOAI_LE_TINH.match(s.strip()))
+    la_ten_rieng = bool(_NGOAI_LE_TINH.match(s.strip())) or _la_ten_rieng_quan(s)
     s = unicodedata.normalize("NFD", s)
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     s = s.replace("đ", "d").replace("Đ", "D").lower()
     s = re.sub(r"[^a-z0-9]+", " ", s).strip()
-    if not la_ten_rieng_tinh:
+    if not la_ten_rieng:
         s = _TIEN_TO.sub("", s).strip()
     return s.replace("y", "i")
 
@@ -46,6 +68,9 @@ class DuLieu:
     def __init__(self, f_crosswalk, f_danh_muc, f_alias):
         self.ten_quan = {}            # chuan_ten(quan_cu) -> [(tinh_cu, quan_cu), ...]
         self.phuong_moi = {}          # chuan_ten(phuong_moi) -> [(tinh_cu, quan_cu), ...]
+        # (loai_rieng, chuan_ten(phuong_moi)) -> [...] — phân biệt Phường/Xã/Thị trấn,
+        # xem _loai_rieng_phuong(). Ưu tiên tra ở đây trước khi rơi về phuong_moi gộp chung.
+        self.phuong_moi_co_cap = {}
         self.phuong_cu_theo_quan = {}  # (tinh_cu, quan_cu) -> {chuan_ten(phuong_cu): phuong_cu}
         self._tinh_moi = {}            # chuan_ten(tinh_cu) -> tên tỉnh MỚI 2025
 
@@ -55,9 +80,13 @@ class DuLieu:
             ds = self.ten_quan.setdefault(chuan_ten(k[1]), [])
             if k not in ds:
                 ds.append(k)
-            pm = chuan_ten(d.get("phuong_moi", ""))
+            pm_goc = d.get("phuong_moi", "").strip()
+            pm = chuan_ten(pm_goc)
             if pm:
                 self.phuong_moi.setdefault(pm, []).append(k)
+                loai_pm = _loai_rieng_phuong(pm_goc)
+                if loai_pm:
+                    self.phuong_moi_co_cap.setdefault((loai_pm, pm), []).append(k)
             phuong_cu = d.get("phuong_cu", "").strip()
             if phuong_cu:
                 self.phuong_cu_theo_quan.setdefault(k, {})[chuan_ten(phuong_cu)] = phuong_cu
@@ -125,6 +154,31 @@ _PHUONG_PRE = re.compile(
 # "thành phố"/"tp" KHÔNG ở đây cùng lý do trên (xem _QUAN_PRE).
 _TINH_PRE = re.compile(r"^(t[iỉ]nh)\s+", re.IGNORECASE)
 
+# Phân biệt RIÊNG Phường/Xã/Thị trấn trong nhóm "phuong" ở _PHUONG_PRE — dùng để
+# KHÔNG lẫn 'Phường Thanh Thủy' (mới, đô thị) với 'Xã Thanh Thủy' (mới, nông thôn,
+# ở TỈNH KHÁC) dù chuan_ten() cắt tiền tố làm chúng trùng chữ. Bug thật đã vấp
+# 20/10/2026: SAP 'Phường Thanh Thủy' bị báo mơ hồ với cả 'Xã Thanh Thủy' (Phú
+# Thọ) và 'Xã Thanh Thủy' (Hà Giang) — trong khi 2 nơi đó không hề có Phường nào
+# tên này, chỉ trùng chữ sau khi cắt tiền tố.
+_PHUONG_RIENG = re.compile(r"^(ph[uư][ơo]ng|p\.?)\s+", re.IGNORECASE)
+_XA_RIENG = re.compile(r"^(x[aã])\s+", re.IGNORECASE)
+_THITRAN_RIENG = re.compile(r"^(th[iị]\s*tr[aấ]n|tt\.?)\s+", re.IGNORECASE)
+
+
+def _loai_rieng_phuong(manh_goc):
+    """-> "phuong" | "xa" | "thi_tran" | None. Chạy TRƯỚC chuan_ten() như _phan_loai_manh."""
+    t = unicodedata.normalize("NFD", str(manh_goc).strip())
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    t = t.replace("đ", "d").replace("Đ", "D").lower()
+    t = re.sub(r"\s+", " ", t).strip()
+    if _PHUONG_RIENG.match(t):
+        return "phuong"
+    if _XA_RIENG.match(t):
+        return "xa"
+    if _THITRAN_RIENG.match(t):
+        return "thi_tran"
+    return None
+
 
 def _phan_loai_manh(manh_goc):
     """-> (cap, chuan_ten(manh_goc)). cap in {"quan","phuong","tinh","khong_ro"}.
@@ -159,6 +213,10 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
     phan = [_phan_loai_manh(m) for m in manh]
     manh_quan = [ct for cap, ct in phan if cap == "quan"]
     manh_phuong = [ct for cap, ct in phan if cap == "phuong"]
+    # (ct, loai_rieng) song song với manh_phuong, để tra phuong_moi_co_cap — xem
+    # _loai_rieng_phuong().
+    manh_phuong_loai = [(ct, _loai_rieng_phuong(m))
+                         for m, (cap, ct) in zip(manh, phan) if cap == "phuong"]
     manh_tinh = [ct for cap, ct in phan if cap == "tinh"]
     manh_khong_ro = [ct for cap, ct in phan if cap == "khong_ro"]
 
@@ -175,6 +233,21 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
         if tinh_rg_chuan and (tinh_rg_chuan == tc or tinh_rg_chuan == tm_chuan):
             return True
         return False
+
+    def stm_nhat_quan(cands):
+        """Nhiều ứng viên khác nhau ở cấp CŨ nhưng CÙNG map về 1 tên quận
+        trên danh mục STM (vd 'Thành phố Cao Lãnh' / 'Huyện Cao Lãnh' đều
+        chỉ còn 1 dòng 'Cao Lãnh' trong danh_muc_stm.csv) -> không còn mơ hồ
+        với OUTPUT cuối cùng (cột Quận ra giống hệt nhau dù chọn ứng viên
+        nào), trả ứng viên đầu tiên. Khác tên STM, hoặc có ứng viên không
+        nằm trong danh mục STM -> None, vẫn coi là mơ hồ thật."""
+        cands = list(cands)
+        if len(cands) < 2:
+            return None
+        ten = [du_lieu.ten_stm(tc, qc) for tc, qc in cands]
+        if all(t is not None for t in ten) and len(set(ten)) == 1:
+            return cands[0]
+        return None
 
     chon = None
     uv = []
@@ -206,12 +279,20 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
         if len(loc) == 1:
             chon = loc[0]
         else:
-            return {"tinh_cu": tinh_mo_ho(uv, loc), "quan_cu": "", "phuong_cu": "",
-                    "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": loc or uv}
+            chon = stm_nhat_quan(loc or uv)
+            if chon is None:
+                return {"tinh_cu": tinh_mo_ho(uv, loc), "quan_cu": "", "phuong_cu": "",
+                        "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": loc or uv}
 
     if chon is None:
         cand = []
-        for ct in manh_phuong + manh_khong_ro:
+        for ct, loai in manh_phuong_loai:
+            # Ưu tiên tra ĐÚNG cấp (Phường/Xã/Thị trấn) trước — chỉ rơi về tra gộp
+            # chung (level-agnostic) khi không có ứng viên nào cùng cấp, để không
+            # mất recall với trường hợp dữ liệu crosswalk thiếu/không rõ cấp.
+            cung_cap = du_lieu.phuong_moi_co_cap.get((loai, ct), []) if loai else []
+            cand += cung_cap if cung_cap else du_lieu.phuong_moi.get(ct, [])
+        for ct in manh_khong_ro:
             cand += du_lieu.phuong_moi.get(ct, [])
         bo = {(c[0], c[1]) for c in cand}
         if len(bo) == 1:
@@ -221,8 +302,10 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
             if len(loc) == 1:
                 chon = next(iter(loc))
             else:
-                return {"tinh_cu": tinh_mo_ho(bo, loc), "quan_cu": "", "phuong_cu": "",
-                        "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": list(loc or bo)}
+                chon = stm_nhat_quan(loc or bo)
+                if chon is None:
+                    return {"tinh_cu": tinh_mo_ho(bo, loc), "quan_cu": "", "phuong_cu": "",
+                            "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": list(loc or bo)}
 
     if chon is None:
         return {"tinh_cu": ten_tinh_rg or "", "quan_cu": "", "phuong_cu": "",

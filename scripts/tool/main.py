@@ -32,6 +32,17 @@ class LoiNguoiDung(Exception):
     """Lỗi khách tự sửa được — in gọn, không in traceback."""
 
 
+def _ghi_log_canh_bao(thu_muc_ra, ten_file, dong_log):
+    """Ghi các dòng cảnh báo CHI TIẾT (vốn in hàng loạt ra console, dễ gây hoang mang khi
+    nhiều) ra 1 file .txt riêng cạnh file upload — console chỉ in số lượng tóm tắt, khách
+    cần xem chi tiết thì mở file này. -> Path file log, hoặc None nếu không có gì để ghi."""
+    if not dong_log:
+        return None
+    duong_dan = Path(thu_muc_ra) / ten_file
+    duong_dan.write_text("\n".join(dong_log), encoding="utf-8")
+    return duong_dan
+
+
 def thu_muc_goc():
     """Chỗ đặt exe (lúc đóng gói) hoặc gốc project (lúc chạy bằng python)."""
     if getattr(sys, "frozen", False):
@@ -144,8 +155,13 @@ def chay(thu_muc_vao, thu_muc_ra, duong_dan_config, duong_dan_bang_tinh):
                                                      cho_phep_tao_moi=False)
             if thong_ke_stm["shipto_tai_dung"]:
                 print(f"  - Tai dung (da co san): {len(thong_ke_stm['shipto_tai_dung'])} Ship-to")
-            for msg in sorted(thong_ke_stm["canh_bao_cache_sai"]):
-                print(f"  [!] {msg}")
+            canh_bao_stm = sorted(thong_ke_stm["canh_bao_cache_sai"])
+            if canh_bao_stm:
+                duong_dan_log = _ghi_log_canh_bao(
+                    thu_muc_ra, f"canhbao_shipto_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}.txt",
+                    canh_bao_stm)
+                print(f"  [!] {len(canh_bao_stm)} Ship-to trong cache bi bo qua do sai DVHC "
+                      f"- xem chi tiet: {duong_dan_log.name}")
             print("  - Da doi chieu voi cache co san; dia chi nao con can tao moi se duoc "
                   "xu ly o buoc tao Sold-to/Ship-to tiep theo.")
             # xu_ly() co the da go bot ly_do (khop cache theo dia chi, ke ca nhom thieu han
@@ -234,14 +250,17 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
                 for d in dong]
     ghi_de_upload(duong_dan_file, thay_doi)
 
-    for canh_bao in sorted(thong_ke["canh_bao_cache_sai"]):
-        print(f"  [!] {canh_bao}")
-    for ma in sorted(thong_ke["bo_qua_thieu_dia_chi"]):
-        print(f"  [!] Bo qua Ship-to '{ma}' - con thieu Tinh/Quan, sua file roi bam lai nut 3")
-    for ma in sorted(thong_ke["bo_qua_khong_co_toa_do"]):
-        print(f"  [!] Bo qua Ship-to '{ma}' - khong tra duoc toa do (Track Asia loi/khoa). "
-              "Dia chi van giu nguyen trong file upload don hang - STM se tu tao diem "
-              "(khong toa do) luc xu ly don.")
+    dong_log = list(sorted(thong_ke["canh_bao_cache_sai"]))
+    dong_log += [f"Bo qua Ship-to '{ma}' - con thieu Tinh/Quan, sua file roi bam lai nut 3"
+                 for ma in sorted(thong_ke["bo_qua_thieu_dia_chi"])]
+    dong_log += [f"Bo qua Ship-to '{ma}' - khong tra duoc toa do (Track Asia loi/khoa). "
+                 "Dia chi van giu nguyen trong file upload don hang - STM se tu tao diem "
+                 "(khong toa do) luc xu ly don."
+                 for ma in sorted(thong_ke["bo_qua_khong_co_toa_do"])]
+    duong_dan_log = _ghi_log_canh_bao(
+        thu_muc_ra, f"canhbao_soldto_shipto_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}.txt", dong_log)
+    if duong_dan_log:
+        print(f"  Co {len(dong_log)} canh bao chi tiet - xem file: {duong_dan_log.name}")
 
     n_soldto = len(thong_ke["can_tao_moi"]["soldto"])
     n_shipto = len(thong_ke["can_tao_moi"]["shipto"])
