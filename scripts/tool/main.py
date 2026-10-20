@@ -235,16 +235,18 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
     cfg = doc_config(duong_dan_config)
     lay_toa_do = _tao_lay_toa_do(cfg)
 
+    # Vong 1 (khong goi mang): check Tinh/Quan khach tu dien co dung danh_muc_stm.csv
+    # khong TRUOC KHI dong cham vao Sold-to/Ship-to (khop cache, goi Track Asia/Nominatim,
+    # sinh ma, ghi cache...). Loi go nho (vd thieu/du vai ky tu) tu sua duoc qua khop mo
+    # (xem chuan_cap_stm) thi IM LANG sua luon, khong can bao - chi bao that su khong
+    # khop duoc gi. Con BAT KY 1 dong nao van sai sau khi da thu sua -> DUNG o day, KHONG
+    # chay tiep buoc Sold-to/Ship-to cho ca nhung dong dung trong cung lan nay (tranh phi
+    # cong goi mang/tao Ship-to roi phai lam lai khi khach sua xong con sai khac).
     dong = doc_lai_upload(duong_dan_file)
     dong_log_dvhc_sai = []
     for d in dong:
         thieu = [c for c in ("O", "P") if not str(d.get(c, "")).strip()]
         if not thieu:
-            # Khách tự gõ tay Tinh/Quan trong file upload (khong trong o thieu) nhung ten do
-            # khong co trong danh_muc_stm.csv (go sai chinh ta, hoac ten khong duoc STM chap
-            # nhan) - neu khong chan o day, xu_ly() se coi la "du tin cay" va de xuat tao
-            # Ship-to moi voi Tinh/Quan sai, ghi thang vao file import STM. Chan lai giong het
-            # nhu truong hop con thieu O/P (khong tao moi, cho khach sua roi bam lai nut 3).
             chuan = du_lieu_dia_chi.chuan_cap_stm(d["O"], d["P"])
             if chuan is None:
                 thieu = ["O", "P"]
@@ -252,13 +254,29 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
                     f"Dong {d['_hang']}: Tinh/Quan '{d['O']}'/'{d['P']}' ban tu dien khong co "
                     "trong danh muc STM - sua lai dung ten roi bam lai nut 3")
                 dong_log_dvhc_sai.append(dong_cb)
-                # In thang ra console (khac cac canh bao khac chi ghi file) - khach can sua
-                # LIEN va chay lai nut 3 ngay, khong phai mo file .txt moi biet.
                 print(f"  [!] {dong_cb}")
             else:
                 d["O"], d["P"] = chuan
         d["_thieu"] = thieu
         d["_ly_do"] = []
+
+    # Ghi lai ngay nhung o da tu sua chinh ta (khong doi L/N) - du con sai cho khac,
+    # lan chay sau khach khong phai sua lai nhung cho da tu dung.
+    ghi_de_upload(duong_dan_file, [{"_hang": d["_hang"], "O": d["O"], "P": d["P"]}
+                                    for d in dong])
+
+    if dong_log_dvhc_sai:
+        duong_dan_log = _ghi_log_canh_bao(
+            thu_muc_ra, f"canhbao_soldto_shipto_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}.txt",
+            dong_log_dvhc_sai)
+        print()
+        print(f"  [!!!] CON {len(dong_log_dvhc_sai)} DONG TINH/QUAN SAI - CHUA CHAY DUOC "
+              "BUOC SOLD-TO/SHIP-TO!")
+        print(f"        Mo file '{duong_dan_file.name}' vua tai ve, sua dung ten "
+              "Tinh/Quan o cac dong bi bao sai (xem chi tiet trong file canh bao "
+              f"'{duong_dan_log.name if duong_dan_log else ''}'),")
+        print("        roi CHAY LAI Buoc 2 (chon dung file vua sua) de xu ly tiep.")
+        return duong_dan_file, None
 
     duong_dan_cache = Path(duong_dan_du_lieu) / "stm_cache.json"
     cache = stm_cache.doc_cache(duong_dan_cache)
@@ -270,8 +288,7 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
                 for d in dong]
     ghi_de_upload(duong_dan_file, thay_doi)
 
-    dong_log = list(dong_log_dvhc_sai)
-    dong_log += list(sorted(thong_ke["canh_bao_cache_sai"]))
+    dong_log = list(sorted(thong_ke["canh_bao_cache_sai"]))
     dong_log += [f"Bo qua Ship-to '{ma}' - con thieu Tinh/Quan, sua file roi bam lai nut 3"
                  for ma in sorted(thong_ke["bo_qua_thieu_dia_chi"])]
     dong_log += [f"Bo qua Ship-to '{ma}' - khong tra duoc toa do (Track Asia loi/khoa). "
@@ -296,18 +313,6 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
         stm_api.ghi_file_soldto_shipto(duong_dan_stm, thong_ke["can_tao_moi"])
         print(f"  Da ghi file can tao moi: {duong_dan_stm.name}")
         print("    (import file nay qua UI Import Excel cua STM truoc khi dung don)")
-
-    if dong_log_dvhc_sai:
-        # In NOI BAT o CUOI CUNG console (sau het cac dong log khac) - de khach khong
-        # bo sot giua nhieu dong canh bao khac (vd hang chuc dong "khong tra duoc toa
-        # do"). Van tra file ve binh thuong (khong chan gi ca) - khach can tu mo file,
-        # sua dung cac dong nay, roi CHAY LAI Buoc 2/nut 3 de xu ly tiep.
-        print()
-        print(f"  [!!!] CON {len(dong_log_dvhc_sai)} DONG TINH/QUAN SAI - CHUA XU LY XONG!")
-        print(f"        Mo file '{duong_dan_file.name}' vua tai ve, sua dung ten "
-              "Tinh/Quan o cac dong bi bao sai (xem chi tiet trong file canh bao "
-              f"'{duong_dan_log.name if duong_dan_log else ''}'),")
-        print("        roi CHAY LAI Buoc 2 (chon dung file vua sua) de xu ly tiep.")
 
     return duong_dan_file, duong_dan_stm
 
