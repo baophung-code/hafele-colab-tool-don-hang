@@ -104,10 +104,10 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
 
         ma_don = str(d.get(ten_cot_ma_don, "")).strip()
 
+        # Thiếu Mã Ship to (vd nhóm DECO) không còn cảnh báo - đã xác nhận nghiệp vụ
+        # 16/10/2026: STM tự khớp địa chỉ/đề xuất tạo điểm trong cùng Sold-to lúc lên
+        # đơn, không cần tool báo lại hay tô vàng.
         l = ship_to.get(ma_don, "")
-        if not l:
-            danh_dau("Thiếu Mã Ship to", ["L"],
-                      f"Mã đơn hàng {ma_don} không có Ship-to trong dữ liệu shipment SAP")
 
         ngay = ngay_kh.get(odo)
         if ngay is None:

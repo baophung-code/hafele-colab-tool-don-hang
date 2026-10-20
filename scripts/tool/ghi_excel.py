@@ -45,7 +45,6 @@ GIAI_THICH_NHOM = {
     NHOM_KHAC: "xem cột Chi tiết",
 }
 _LOAI_TO_NHOM = {
-    "Thiếu Mã Ship to": NHOM_SAP,
     "Thiếu ngày gửi / ETD / ETA (cột D, T, U)": NHOM_SAP,
     "Số lượng ≤ 0": NHOM_SAP,
     "Tỉnh SAP và tỉnh theo toạ độ khác nhau": NHOM_DIA_CHI,

@@ -100,8 +100,7 @@ def _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke):
             for c in ("L", "N", "O", "P"):
                 if c in r["_thieu"]:
                     r["_thieu"].remove(c)
-            r["_ly_do"] = [ly for ly in r["_ly_do"]
-                           if ly not in _LY_DO_DVHC and ly != "Thiếu Mã Ship to"]
+            r["_ly_do"] = [ly for ly in r["_ly_do"] if ly not in _LY_DO_DVHC]
         thong_ke["shipto_tai_dung"].add(ma_khop)
 
 
