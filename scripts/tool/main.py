@@ -248,9 +248,13 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
             chuan = du_lieu_dia_chi.chuan_cap_stm(d["O"], d["P"])
             if chuan is None:
                 thieu = ["O", "P"]
-                dong_log_dvhc_sai.append(
+                dong_cb = (
                     f"Dong {d['_hang']}: Tinh/Quan '{d['O']}'/'{d['P']}' ban tu dien khong co "
                     "trong danh muc STM - sua lai dung ten roi bam lai nut 3")
+                dong_log_dvhc_sai.append(dong_cb)
+                # In thang ra console (khac cac canh bao khac chi ghi file) - khach can sua
+                # LIEN va chay lai nut 3 ngay, khong phai mo file .txt moi biet.
+                print(f"  [!] {dong_cb}")
             else:
                 d["O"], d["P"] = chuan
         d["_thieu"] = thieu
