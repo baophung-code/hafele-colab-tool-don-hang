@@ -30,9 +30,27 @@ def la_ghi_chu(s, cum_tu):
     return any(_chuan(c) in t for c in cum_tu)
 
 
+_TIEN_TO_DINH_LIEN = re.compile(
+    r"\b(Phường|Xã|Thị trấn|Quận|Huyện|Thành phố|Thị xã|Tỉnh)(\S)")
+
+
+def _tach_tien_to_dinh_lien(s):
+    """SAP đôi khi export 2 field dính liền không khoảng trắng khi field trước kết
+    thúc đúng bằng tiền tố cấp hành chính và field sau là tên riêng viết hoa (vd
+    'PhườngBình Dương' -> 'Phường Bình Dương'). CHỈ chèn khoảng trắng khi ký tự ngay
+    sau là CHỮ HOA — chữ thường theo sau có thể chỉ là trùng chữ ngẫu nhiên, không
+    phải lỗi dính field, không được tách bừa. Bug thật 20/10/2026: DO.XLSX Street 4
+    = 'PhườngBình Dương,' (xem CLAUDE.md)."""
+    def _chen(m):
+        tien_to, ky_tu = m.group(1), m.group(2)
+        return f"{tien_to} {ky_tu}" if ky_tu.isupper() else m.group(0)
+    return _TIEN_TO_DINH_LIEN.sub(_chen, str(s))
+
+
 def don_dia_chi(s):
     """Gộp khoảng trắng, bỏ dấu phẩy lặp và dấu phẩy/gạch ở cuối."""
-    t = re.sub(r"\s+", " ", str(s)).strip()
+    t = _tach_tien_to_dinh_lien(s)
+    t = re.sub(r"\s+", " ", t).strip()
     t = re.sub(r"\s*,\s*(?=,)", "", t)      # ',,' -> ','
     t = re.sub(r"(\s*,)+\s*$", "", t)       # bỏ dấu phẩy cuối chuỗi
     t = re.sub(r"^[\s,;-]+", "", t)

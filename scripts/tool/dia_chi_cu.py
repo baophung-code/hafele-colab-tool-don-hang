@@ -59,6 +59,17 @@ def chuan_ten(s):
     return s.replace("y", "i")
 
 
+def _giu_dau(s):
+    """Chuẩn hoá NHẸ: hạ chữ thường, gộp khoảng trắng — GIỮ NGUYÊN mọi dấu (kể cả dấu
+    thanh) và tiền tố. Dùng làm TRỌNG TÀI phân xử cuối khi mơ hồ do chuan_ten() cố ý
+    bỏ dấu thanh (để chịu lỗi gõ sai dấu) làm 2 tên khác nhau trông giống hệt nhau (vd
+    'Thạnh' và 'Thành' đều về 'thanh') — KHÔNG thay chuan_ten() chính, chỉ dùng để so
+    khớp phụ khi đã mơ hồ, không làm giảm khả năng chịu lỗi gõ sai dấu ở nơi khác."""
+    s = unicodedata.normalize("NFC", str(s)).lower()
+    s = re.sub(r"[^\w\s]", " ", s, flags=re.UNICODE)
+    return re.sub(r"\s+", " ", s).strip()
+
+
 class DuLieu:
     """Ba nguồn tham chiếu đã nạp sẵn vào bộ nhớ.
 
@@ -77,6 +88,9 @@ class DuLieu:
         # sáp nhập — tên cũ/mới thường khác hẳn, vd 'Bình Hưng Hòa A' (cũ) -> 'Bình Hưng
         # Hòa' (mới, bỏ hậu tố A), nếu SAP chỉ ghi tên cũ thì tra theo tên mới không ra).
         self.phuong_cu_flat = {}
+        # (tinh_cu, quan_cu) -> {_giu_dau(tên phường cũ/mới của quận đó), ...} — trọng
+        # tài phân xử mơ hồ do dấu thanh bị gộp mất trong chuan_ten() (xem _giu_dau()).
+        self._phuong_dau = {}
         self._tinh_moi = {}            # chuan_ten(tinh_cu) -> tên tỉnh MỚI 2025
 
         for d in csv.DictReader(f_crosswalk):
@@ -92,9 +106,11 @@ class DuLieu:
                 loai_pm = _loai_rieng_phuong(pm_goc)
                 if loai_pm:
                     self.phuong_moi_co_cap.setdefault((loai_pm, pm), []).append(k)
+                self._phuong_dau.setdefault(k, set()).add(_giu_dau(pm_goc))
             phuong_cu = d.get("phuong_cu", "").strip()
             if phuong_cu:
                 self.phuong_cu_theo_quan.setdefault(k, {})[chuan_ten(phuong_cu)] = phuong_cu
+                self._phuong_dau.setdefault(k, set()).add(_giu_dau(phuong_cu))
                 ds_flat = self.phuong_cu_flat.setdefault(chuan_ten(phuong_cu), [])
                 if k not in ds_flat:
                     ds_flat.append(k)
@@ -219,6 +235,17 @@ def _phan_loai_manh(manh_goc):
     return cap, chuan_ten(manh_goc)
 
 
+def _loc_dau_thanh(cands, manh_goc_list, du_lieu):
+    """Mơ hồ nhiều quận (không lọc được bằng tỉnh/STM) nhưng chỉ vì chuan_ten() bỏ dấu
+    thanh làm 2 tên phường khác nhau trông giống hệt nhau (vd 'Thạnh'/'Thành', xem
+    _giu_dau()) -> so lại bằng bản GIỮ dấu thanh, ứng viên nào có tên phường (cũ hoặc
+    mới) khớp đúng 1 trong các mảnh gốc thì chọn. Đúng 1 ứng viên khớp -> hết mơ hồ;
+    0 hoặc ≥2 ứng viên khớp -> vẫn mơ hồ như cũ (không ép ra kết quả khi còn lưỡng lự)."""
+    dau_goc = {_giu_dau(m) for m in manh_goc_list}
+    khop = [c for c in cands if du_lieu._phuong_dau.get(c, set()) & dau_goc]
+    return khop[0] if len(khop) == 1 else None
+
+
 def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
     """Suy Tỉnh/Quận/Phường CŨ thuần từ chữ trong địa chỉ SAP — KHÔNG toạ độ, KHÔNG mạng.
 
@@ -335,6 +362,10 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
                 chon = next(iter(loc))
             else:
                 chon = stm_nhat_quan(loc or bo)
+                if chon is None:
+                    manh_phuong_raw = ([m for _, _, m in manh_phuong_loai]
+                                        + [m for _, m in manh_khong_ro_goc])
+                    chon = _loc_dau_thanh(loc or bo, manh_phuong_raw, du_lieu)
                 if chon is None:
                     return {"tinh_cu": tinh_mo_ho(bo, loc), "quan_cu": "", "phuong_cu": "",
                             "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": list(loc or bo)}
