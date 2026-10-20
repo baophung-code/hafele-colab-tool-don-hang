@@ -236,8 +236,24 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
     lay_toa_do = _tao_lay_toa_do(cfg)
 
     dong = doc_lai_upload(duong_dan_file)
+    dong_log_dvhc_sai = []
     for d in dong:
-        d["_thieu"] = [c for c in ("O", "P") if not str(d.get(c, "")).strip()]
+        thieu = [c for c in ("O", "P") if not str(d.get(c, "")).strip()]
+        if not thieu:
+            # Khách tự gõ tay Tinh/Quan trong file upload (khong trong o thieu) nhung ten do
+            # khong co trong danh_muc_stm.csv (go sai chinh ta, hoac ten khong duoc STM chap
+            # nhan) - neu khong chan o day, xu_ly() se coi la "du tin cay" va de xuat tao
+            # Ship-to moi voi Tinh/Quan sai, ghi thang vao file import STM. Chan lai giong het
+            # nhu truong hop con thieu O/P (khong tao moi, cho khach sua roi bam lai nut 3).
+            chuan = du_lieu_dia_chi.chuan_cap_stm(d["O"], d["P"])
+            if chuan is None:
+                thieu = ["O", "P"]
+                dong_log_dvhc_sai.append(
+                    f"Dong {d['_hang']}: Tinh/Quan '{d['O']}'/'{d['P']}' ban tu dien khong co "
+                    "trong danh muc STM - sua lai dung ten roi bam lai nut 3")
+            else:
+                d["O"], d["P"] = chuan
+        d["_thieu"] = thieu
         d["_ly_do"] = []
 
     duong_dan_cache = Path(duong_dan_du_lieu) / "stm_cache.json"
@@ -250,7 +266,8 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
                 for d in dong]
     ghi_de_upload(duong_dan_file, thay_doi)
 
-    dong_log = list(sorted(thong_ke["canh_bao_cache_sai"]))
+    dong_log = list(dong_log_dvhc_sai)
+    dong_log += list(sorted(thong_ke["canh_bao_cache_sai"]))
     dong_log += [f"Bo qua Ship-to '{ma}' - con thieu Tinh/Quan, sua file roi bam lai nut 3"
                  for ma in sorted(thong_ke["bo_qua_thieu_dia_chi"])]
     dong_log += [f"Bo qua Ship-to '{ma}' - khong tra duoc toa do (Track Asia loi/khoa). "
