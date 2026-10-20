@@ -7,8 +7,15 @@ Nhờ vậy test được toàn bộ bằng dữ liệu bịa, không chạm int
 Ranh giới này có test canh: xem test_dia_chi_cu_khong_import_openpyxl_va_khong_goi_mang.
 """
 import csv
+import difflib
 import re
 import unicodedata
+
+# Nguong tuong dong toi thieu de chap nhan khop mo (fuzzy) ten Quan/Huyen khach tu go
+# tay bi du/thieu/lap vai ky tu (vd 'Dong Xoaii' go du 1 chu 'i' so voi 'Dong Xoai') -
+# xem DuLieu.chuan_cap_stm(). 0.85 du chat de khong khop nham 2 ten quan khac nhau
+# nhung gan giong (da do thu tren danh_muc_stm.csv that).
+_NGUONG_MO_TEN_QUAN = 0.85
 
 # Tiền tố cấp hành chính, khớp ở ĐẦU chuỗi và phải có khoảng trắng theo sau.
 # Không dùng \b giữa chuỗi: 'Thành' trong 'Kho Thành Đạt' sẽ bị cắt oan.
@@ -142,8 +149,23 @@ class DuLieu:
         Không chỉ kiểm hợp lệ mà còn ĐỔI CHÍNH TẢ: nhánh dự phòng cho ra
         'Huyện Long Điền' trong khi danh mục STM ghi 'Long Điền' — giữ dạng thô
         là STM từ chối. Đo trên data thật: 2/295 đơn.
+
+        Khớp đúng thất bại -> thử khớp MỜ (fuzzy) theo tên quận, CHỈ trong phạm vi
+        ĐÚNG tỉnh đã biết (ít ứng viên, ít rủi ro khớp nhầm) và CHỈ nhận khi duy
+        nhất 1 ứng viên vượt ngưỡng — bắt được lỗi gõ dư/thiếu vài ký tự của khách
+        tự điền tay (vd 'Đồng Xoàii' -> 'Đồng Xoài'), không đoán bừa khi còn mơ hồ.
         """
-        return self._stm_quan.get((chuan_ten(tinh), chuan_ten(quan)))
+        tc, qc = chuan_ten(tinh), chuan_ten(quan)
+        ten = self._stm_quan.get((tc, qc))
+        if ten is not None:
+            return ten
+        ung_vien = [qc_stm for (t, qc_stm) in self._stm_quan if t == tc]
+        if not ung_vien:
+            return None
+        khop = difflib.get_close_matches(qc, ung_vien, n=2, cutoff=_NGUONG_MO_TEN_QUAN)
+        if len(khop) == 1:
+            return self._stm_quan.get((tc, khop[0]))
+        return None
 
     def ten_stm(self, tinh_cu, quan_cu):
         """Tên crosswalk -> tên đúng như danh mục STM. Không có -> None.
