@@ -297,6 +297,18 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
         print(f"  Da ghi file can tao moi: {duong_dan_stm.name}")
         print("    (import file nay qua UI Import Excel cua STM truoc khi dung don)")
 
+    if dong_log_dvhc_sai:
+        # In NOI BAT o CUOI CUNG console (sau het cac dong log khac) - de khach khong
+        # bo sot giua nhieu dong canh bao khac (vd hang chuc dong "khong tra duoc toa
+        # do"). Van tra file ve binh thuong (khong chan gi ca) - khach can tu mo file,
+        # sua dung cac dong nay, roi CHAY LAI Buoc 2/nut 3 de xu ly tiep.
+        print()
+        print(f"  [!!!] CON {len(dong_log_dvhc_sai)} DONG TINH/QUAN SAI - CHUA XU LY XONG!")
+        print(f"        Mo file '{duong_dan_file.name}' vua tai ve, sua dung ten "
+              "Tinh/Quan o cac dong bi bao sai (xem chi tiet trong file canh bao "
+              f"'{duong_dan_log.name if duong_dan_log else ''}'),")
+        print("        roi CHAY LAI Buoc 2 (chon dung file vua sua) de xu ly tiep.")
+
     return duong_dan_file, duong_dan_stm
 
 
