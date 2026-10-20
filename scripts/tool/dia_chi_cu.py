@@ -72,6 +72,11 @@ class DuLieu:
         # xem _loai_rieng_phuong(). Ưu tiên tra ở đây trước khi rơi về phuong_moi gộp chung.
         self.phuong_moi_co_cap = {}
         self.phuong_cu_theo_quan = {}  # (tinh_cu, quan_cu) -> {chuan_ten(phuong_cu): phuong_cu}
+        # chuan_ten(phuong_cu) -> [(tinh_cu, quan_cu), ...] — tra theo tên phường CŨ ngay
+        # cả khi CHƯA biết quận (bổ sung cho phuong_moi vốn chỉ tra theo tên phường MỚI sau
+        # sáp nhập — tên cũ/mới thường khác hẳn, vd 'Bình Hưng Hòa A' (cũ) -> 'Bình Hưng
+        # Hòa' (mới, bỏ hậu tố A), nếu SAP chỉ ghi tên cũ thì tra theo tên mới không ra).
+        self.phuong_cu_flat = {}
         self._tinh_moi = {}            # chuan_ten(tinh_cu) -> tên tỉnh MỚI 2025
 
         for d in csv.DictReader(f_crosswalk):
@@ -90,6 +95,9 @@ class DuLieu:
             phuong_cu = d.get("phuong_cu", "").strip()
             if phuong_cu:
                 self.phuong_cu_theo_quan.setdefault(k, {})[chuan_ten(phuong_cu)] = phuong_cu
+                ds_flat = self.phuong_cu_flat.setdefault(chuan_ten(phuong_cu), [])
+                if k not in ds_flat:
+                    ds_flat.append(k)
 
         self._alias = {}
         for d in csv.DictReader(f_alias):
@@ -160,6 +168,16 @@ _TINH_PRE = re.compile(r"^(t[iỉ]nh)\s+", re.IGNORECASE)
 # 20/10/2026: SAP 'Phường Thanh Thủy' bị báo mơ hồ với cả 'Xã Thanh Thủy' (Phú
 # Thọ) và 'Xã Thanh Thủy' (Hà Giang) — trong khi 2 nơi đó không hề có Phường nào
 # tên này, chỉ trùng chữ sau khi cắt tiền tố.
+def _chuan_ten_truoc_gach_ngang(manh_goc):
+    """Phần TRƯỚC dấu '-' đệm khoảng trắng hai bên (vd 'Dương Đông - Phú Quốc' ->
+    'Dương Đông'). CHỈ dùng làm phương án dự phòng khi tra nguyên mảnh thất bại — SAP hay
+    nối thêm tên huyện/quận vào cùng mảnh với tên phường qua dấu gạch ngang thay vì tách
+    bằng dấu phẩy. Không đụng tới cấp Tỉnh ở nơi khác (tên tỉnh có thể tự chứa gạch ngang
+    như 'Bà Rịa - Vũng Tàu', nơi đó vẫn phải khớp nguyên văn)."""
+    truoc = re.split(r"\s+-\s+", str(manh_goc), maxsplit=1)[0]
+    return chuan_ten(truoc)
+
+
 _PHUONG_RIENG = re.compile(r"^(ph[uư][ơo]ng|p\.?)\s+", re.IGNORECASE)
 _XA_RIENG = re.compile(r"^(x[aã])\s+", re.IGNORECASE)
 _THITRAN_RIENG = re.compile(r"^(th[iị]\s*tr[aấ]n|tt\.?)\s+", re.IGNORECASE)
@@ -213,12 +231,14 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
     phan = [_phan_loai_manh(m) for m in manh]
     manh_quan = [ct for cap, ct in phan if cap == "quan"]
     manh_phuong = [ct for cap, ct in phan if cap == "phuong"]
-    # (ct, loai_rieng) song song với manh_phuong, để tra phuong_moi_co_cap — xem
-    # _loai_rieng_phuong().
-    manh_phuong_loai = [(ct, _loai_rieng_phuong(m))
+    # (ct, loai_rieng, manh_goc) song song với manh_phuong — loai_rieng để tra
+    # phuong_moi_co_cap (xem _loai_rieng_phuong()), manh_goc để thử fallback cắt trước
+    # dấu gạch ngang khi tra bằng ct thất bại (xem _chuan_ten_truoc_gach_ngang()).
+    manh_phuong_loai = [(ct, _loai_rieng_phuong(m), m)
                          for m, (cap, ct) in zip(manh, phan) if cap == "phuong"]
     manh_tinh = [ct for cap, ct in phan if cap == "tinh"]
     manh_khong_ro = [ct for cap, ct in phan if cap == "khong_ro"]
+    manh_khong_ro_goc = [(ct, m) for m, (cap, ct) in zip(manh, phan) if cap == "khong_ro"]
 
     tinh_rg_chuan = chuan_ten(ten_tinh_rg) if ten_tinh_rg else None
 
@@ -284,16 +304,28 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
                 return {"tinh_cu": tinh_mo_ho(uv, loc), "quan_cu": "", "phuong_cu": "",
                         "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": loc or uv}
 
+    def _tim_ung_vien_phuong(ct, manh_goc):
+        """ct -> ứng viên, thử theo thứ tự: tên MỚI cùng cấp -> tên MỚI gộp chung ->
+        tên CŨ (phuong_cu_flat) -> nếu vẫn rỗng và manh_goc có dấu gạch ngang, thử lại
+        toàn bộ chuỗi trên với phần TRƯỚC dấu gạch ngang (xem _chuan_ten_truoc_gach_ngang)."""
+        tim = du_lieu.phuong_moi.get(ct, []) or du_lieu.phuong_cu_flat.get(ct, [])
+        if not tim:
+            alt = _chuan_ten_truoc_gach_ngang(manh_goc)
+            if alt and alt != ct:
+                tim = du_lieu.phuong_moi.get(alt, []) or du_lieu.phuong_cu_flat.get(alt, [])
+        return tim
+
     if chon is None:
         cand = []
-        for ct, loai in manh_phuong_loai:
+        for ct, loai, m in manh_phuong_loai:
             # Ưu tiên tra ĐÚNG cấp (Phường/Xã/Thị trấn) trước — chỉ rơi về tra gộp
-            # chung (level-agnostic) khi không có ứng viên nào cùng cấp, để không
-            # mất recall với trường hợp dữ liệu crosswalk thiếu/không rõ cấp.
+            # chung (level-agnostic, gồm cả tên cũ + fallback gạch ngang) khi không có
+            # ứng viên nào cùng cấp, để không mất recall với trường hợp dữ liệu
+            # crosswalk thiếu/không rõ cấp.
             cung_cap = du_lieu.phuong_moi_co_cap.get((loai, ct), []) if loai else []
-            cand += cung_cap if cung_cap else du_lieu.phuong_moi.get(ct, [])
-        for ct in manh_khong_ro:
-            cand += du_lieu.phuong_moi.get(ct, [])
+            cand += cung_cap if cung_cap else _tim_ung_vien_phuong(ct, m)
+        for ct, m in manh_khong_ro_goc:
+            cand += _tim_ung_vien_phuong(ct, m)
         bo = {(c[0], c[1]) for c in cand}
         if len(bo) == 1:
             chon = next(iter(bo))
