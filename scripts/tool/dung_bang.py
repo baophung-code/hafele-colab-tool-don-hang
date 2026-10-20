@@ -132,25 +132,22 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
 
         if not quan:
             if dc["ly_do"] == "mo_ho":
-                ds_ung_vien = "; ".join(f"{q} ({t})" for t, q in dc.get("ung_vien", []))
-                danh_dau("Quận/Huyện hoặc Phường/Xã trùng tên nhiều nơi", ["N", "P"],
-                          f"SAP: '{dia_chi_goc}'. Chữ trong địa chỉ khớp được với nhiều "
-                          f"Quận/Huyện CŨ khác nhau (có thể do các nơi này cùng đặt tên "
-                          f"Phường/Xã MỚI 2025 trùng nhau) mà không lọc được còn 1: "
-                          f"{ds_ung_vien or 'không rõ'}")
+                ds_ung_vien = " hoặc ".join(f"{q} ({t})" for t, q in dc.get("ung_vien", []))
+                danh_dau("Quận/Huyện trùng tên nhiều nơi", ["N", "P"],
+                          f"Chưa rõ là: {ds_ung_vien or 'không rõ'} — tự chọn đúng rồi điền tay")
             elif dc["ly_do"] == "khong_hop_le_stm":
                 danh_dau("Quận không có trong danh sách STM chấp nhận", ["N", "P"],
-                          f"SAP: '{dia_chi_goc}'. Suy ra '{dc.get('quan_tho', '')}' "
-                          f"({dc.get('tinh_tho', '')}) — STM không có tên này")
+                          f"Suy ra '{dc.get('quan_tho', '')}' ({dc.get('tinh_tho', '')}) "
+                          f"nhưng STM không có tên này, cần tự tra đúng tên")
             else:
                 danh_dau("Không xác định được Quận/Huyện", ["N", "P"],
-                          f"SAP: '{dia_chi_goc}'. Không khớp quận/phường nào")
+                          f"Địa chỉ SAP không có chữ khớp được quận/phường nào, cần điền tay")
 
         if not ten_tinh:
             danh_dau("Không xác định được Tỉnh", ["O"],
-                      f"SAP: '{dia_chi_goc}'. Địa chỉ không ghi tên tỉnh")
+                      "Địa chỉ SAP không ghi tên tỉnh, cần điền tay")
         elif tin_cay_rg == "thap" and dc["do_tin"] != "CAO":
-            danh_dau("Tỉnh độ tin cậy thấp", ["O"], f"Suy ra {ten_tinh}, cần soát lại")
+            danh_dau("Tỉnh độ tin cậy thấp", ["O"], f"Tool đoán {ten_tinh}, cần soát lại")
 
         sl = it.get("Delivery quantity", "")
         if isinstance(sl, (int, float)) and sl <= 0:
