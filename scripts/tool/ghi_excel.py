@@ -155,8 +155,9 @@ def doc_lai_upload(duong_dan):
     theo khoá K/L/M/N/O/P + '_ten_soldto' (tra theo K từ sheet ẩn SHEET_TEN_SOLDTO, xem
     _sheet_ten_soldto), kèm '_hang' (số dòng Excel thật, bắt đầu từ 2) để `ghi_de_upload()`
     biết ghi đè đúng ô. Dùng cho Bước 2 (main.tao_file_soldto_shipto) - 'M' (Tên Ship to) và
-    '_ten_soldto' chỉ dùng để điền tên thật vào file upload_soldto_shipto, không ghi đè lại
-    file upload đơn hàng."""
+    '_ten_soldto' hiện không còn nơi nào tiêu thụ sau khi bỏ file upload_soldto_shipto riêng
+    (21/10/2026, xem CLAUDE.md) - giữ lại để không vỡ hợp đồng dữ liệu, có thể dọn ở phiên sau
+    nếu xác nhận chắc chắn không còn dùng."""
     wb = openpyxl.load_workbook(duong_dan, data_only=True)
     try:
         ws = wb["Upload"]
