@@ -147,18 +147,25 @@ def xu_ly(dong, cache, du_lieu, lay_toa_do=None, cho_phep_tao_moi=True):
         # chưa xác định được quận/tỉnh).
         ship_to_hien_co = cache["shipto"].get(ma_soldto, [])
 
+        # Nhóm theo CẶP (Mã Ship-to gốc, Địa chỉ) chứ không chỉ theo Mã Ship-to gốc - SAP
+        # có khi dùng chung 1 mã Ship-to (vd placeholder/mặc định) cho nhiều delivery có
+        # địa chỉ giao hàng khác hẳn nhau. Gom chỉ theo mã sẽ lấy đại diện r0 rồi gán NHẦM
+        # 1 mã Ship-to mới (hoặc 1 kết quả tái dùng) cho tất cả địa chỉ trong nhóm, dù
+        # chúng là các điểm giao khác nhau thật. Bug thật đã vấp 21/10/2026: 2 địa chỉ
+        # '600A Điện Biên Phủ, Quận Bình Thạnh, Hồ Chí Minh' và '209 Điện Biên Phủ, Thanh
+        # Khê, Đà Nẵng' cùng chung 1 Mã Ship to gốc trong SAP, bị gán chung 1 mã mới sinh.
         theo_shipto = {}
         rows_khong_ma = []
         for r in rows:
             ma_shipto = r.get("L", "")
             if ma_shipto:
-                theo_shipto.setdefault(ma_shipto, []).append(r)
+                theo_shipto.setdefault((ma_shipto, r.get("N", "")), []).append(r)
             else:
                 rows_khong_ma.append(r)
 
         _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke)
 
-        for ma_shipto, rs in theo_shipto.items():
+        for (ma_shipto, _dia_chi_nhom), rs in theo_shipto.items():
             ma_khop = None
             ban_ghi_khop = None
             _, toks_moi = parse_address(rs[0]["N"])

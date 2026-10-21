@@ -107,10 +107,9 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
             danh_dau("Thiếu Mã đơn hàng", ["B"],
                       "SAP không có dữ liệu cho delivery này")
 
+        # Thiếu Mã đặt hàng (Reference Document) không cảnh báo - khách xác nhận
+        # 21/10/2026 không cần báo, khác với Mã đơn hàng vẫn giữ cảnh báo.
         ma_dat = str(it.get("Reference Document", "")).strip()
-        if not ma_dat:
-            danh_dau("Thiếu Mã đặt hàng", ["C"],
-                      f"SAP không có Reference Document cho mã hàng {it.get('Material', '')}")
 
         # Thiếu Mã Ship to (vd nhóm DECO) không còn cảnh báo - đã xác nhận nghiệp vụ
         # 16/10/2026: STM tự khớp địa chỉ/đề xuất tạo điểm trong cùng Sold-to lúc lên

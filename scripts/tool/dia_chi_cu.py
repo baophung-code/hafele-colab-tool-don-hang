@@ -339,6 +339,24 @@ def _loc_dau_thanh(cands, manh_goc_list, du_lieu):
     return khop[0] if len(khop) == 1 else None
 
 
+_CAP_NGOAC = {"(": ")", "[": "]", "{": "}"}
+
+
+def _bo_ngoac_bao_quanh(s):
+    """Bỏ 1 cặp ngoặc bao TRỌN cả mảnh (vd '(Quận 10)' -> 'Quận 10') — SAP có khi bọc cả
+    mảnh trong ngoặc, khiến tiền tố hành chính không còn nằm ở ĐẦU chuỗi (các regex tiền
+    tố chỉ nhận ^ hoặc sau khoảng trắng) -> mảnh bị phân loại nhầm thành "khong_ro". Chỉ
+    bỏ khi mở/đóng bao hết chuỗi và không có cặp ngoặc lồng/lệch bên trong, không đụng
+    ngoặc nằm GIỮA một mảnh bình thường (vd 'Số 5 (gần chợ)'). Ca thật đã vấp 21/10/2026:
+    '(Quận 10)'."""
+    t = str(s).strip()
+    if len(t) >= 2 and t[0] in _CAP_NGOAC and t[-1] == _CAP_NGOAC[t[0]]:
+        inner = t[1:-1]
+        if t[0] not in inner and _CAP_NGOAC[t[0]] not in inner:
+            return inner.strip()
+    return t
+
+
 def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
     """Suy Tỉnh/Quận/Phường CŨ thuần từ chữ trong địa chỉ SAP — KHÔNG toạ độ, KHÔNG mạng.
 
@@ -347,7 +365,7 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
     khớp. `tinh_cu` vẫn có thể có giá trị (từ chữ hoặc từ `ten_tinh_rg`) ngay cả khi
     `quan_cu` rỗng — 2 việc tách biệt, xem spec §2.5.
     """
-    manh = [m.strip() for m in str(dia_chi_goc).split(",") if m.strip()]
+    manh = [_bo_ngoac_bao_quanh(m) for m in str(dia_chi_goc).split(",") if m.strip()]
     phan = [_phan_loai_manh(m) for m in manh]
     manh_quan = [ct for cap, ct in phan if cap == "quan"]
     manh_phuong = [ct for cap, ct in phan if cap == "phuong"]
