@@ -103,6 +103,14 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
                     chi_tiet_dong[loai] = chi_tiet
 
         ma_don = str(d.get(ten_cot_ma_don, "")).strip()
+        if not ma_don:
+            danh_dau("Thiếu Mã đơn hàng", ["B"],
+                      "SAP không có dữ liệu cho delivery này")
+
+        ma_dat = str(it.get("Reference Document", "")).strip()
+        if not ma_dat:
+            danh_dau("Thiếu Mã đặt hàng", ["C"],
+                      f"SAP không có Reference Document cho mã hàng {it.get('Material', '')}")
 
         # Thiếu Mã Ship to (vd nhóm DECO) không còn cảnh báo - đã xác nhận nghiệp vụ
         # 16/10/2026: STM tự khớp địa chỉ/đề xuất tạo điểm trong cùng Sold-to lúc lên
@@ -164,7 +172,7 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
         loai_dich_vu = "Chuyển kho" if {j, l} == KHO_NOI_BO else "Giao hàng"
 
         r = {
-            "A": odo, "B": ma_don, "C": str(it.get("Reference Document", "")).strip(),
+            "A": odo, "B": ma_don, "C": ma_dat,
             "D": cot_d, "E": str(it.get("Material", "")).strip(), "G": sl,
             "I": str(it.get("Storage Location", "")).strip(), "J": j,
             "K": str(d.get("Sold-to pt", "")).strip(), "L": l,
