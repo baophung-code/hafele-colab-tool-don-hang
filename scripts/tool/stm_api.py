@@ -20,13 +20,14 @@ COT_HEADER_SOLDTO_SHIPTO = [
 ]
 
 
-def _dong_soldto(stt, ma, ten="", dia_chi=""):
+def _dong_soldto(stt, ma, ten="", dia_chi="", tinh="", quan=""):
     """STM bat buoc cot "Dia chi" khong duoc rong va <= 500 ky tu, ke ca cho Sold-to (von
-    khong co 1 dia chi vat ly rieng trong SAP) - dung tam dia chi Ship-to dau tien tao cung
-    Sold-to nay trong cung lo (xem stm_soldto_shipto.xu_ly), fallback ten/ma neu thieu."""
+    khong co 1 dia chi vat ly rieng trong SAP) - dung tam dia chi/tinh/quan cua Ship-to dau
+    tien tao cung Sold-to nay trong cung lo (xem stm_soldto_shipto.xu_ly), fallback ten/ma
+    neu thieu dia chi."""
     ten = ten or ma  # khong tra duoc ten that (vd SAP thieu "Sold-to party") -> dung tam ma
     dia_chi = (dia_chi or ten)[:500]
-    return [stt, "Distributor", ma, ma, ten, "", ma, ma, ma, ma, dia_chi, "", "", ""] + \
+    return [stt, "Distributor", ma, ma, ten, "", ma, ma, ma, ma, dia_chi, tinh, quan, ""] + \
         [""] * (len(COT_HEADER_SOLDTO_SHIPTO) - 14)
 
 
@@ -46,16 +47,19 @@ def _dong_shipto(stt, ma_soldto, ma_shipto, dia_chi, tinh, quan, ten="", lat="",
 
 def ghi_file_soldto_shipto(duong_dan, can_tao_moi):
     """can_tao_moi: {"soldto": [ma, ...], "ten_soldto": {ma: ten}, "dia_chi_soldto": {ma:
-    dia_chi}, "shipto": [{"ma_soldto","ma_shipto","dia_chi","tinh","quan","ten"}, ...]}.
-    "ten"/"ten_soldto" lấy từ SAP (xem dung_bang.py "_ten_soldto" và "M") - rỗng hoặc thiếu hẳn
-    khoá (file can_tao_moi cũ chưa có tên) thì tạm dùng mã, không crash. "dia_chi_soldto" lấy
-    từ địa chỉ Ship-to đầu tiên tạo cùng Sold-to đó (xem stm_soldto_shipto.xu_ly) - STM bắt
-    buộc cột Địa chỉ không được rỗng kể cả cho Sold-to. Không ghi file nếu không có gì cần tạo."""
+    dia_chi}, "tinh_soldto": {ma: tinh}, "quan_soldto": {ma: quan}, "shipto":
+    [{"ma_soldto","ma_shipto","dia_chi","tinh","quan","ten"}, ...]}. "ten"/"ten_soldto" lấy từ
+    SAP (xem dung_bang.py "_ten_soldto" và "M") - rỗng hoặc thiếu hẳn khoá (file can_tao_moi cũ
+    chưa có tên) thì tạm dùng mã, không crash. "dia_chi_soldto"/"tinh_soldto"/"quan_soldto" lấy
+    từ Ship-to đầu tiên tạo cùng Sold-to đó (xem stm_soldto_shipto.xu_ly) - STM bắt buộc cột
+    Địa chỉ không được rỗng kể cả cho Sold-to. Không ghi file nếu không có gì cần tạo."""
     if not can_tao_moi["soldto"] and not can_tao_moi["shipto"]:
         return
 
     ten_soldto = can_tao_moi.get("ten_soldto", {})
     dia_chi_soldto = can_tao_moi.get("dia_chi_soldto", {})
+    tinh_soldto = can_tao_moi.get("tinh_soldto", {})
+    quan_soldto = can_tao_moi.get("quan_soldto", {})
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Sheet1"
@@ -63,7 +67,8 @@ def ghi_file_soldto_shipto(duong_dan, can_tao_moi):
 
     stt = 1
     for ma in can_tao_moi["soldto"]:
-        ws.append(_dong_soldto(stt, ma, ten_soldto.get(ma, ""), dia_chi_soldto.get(ma, "")))
+        ws.append(_dong_soldto(stt, ma, ten_soldto.get(ma, ""), dia_chi_soldto.get(ma, ""),
+                                tinh_soldto.get(ma, ""), quan_soldto.get(ma, "")))
         stt += 1
     for sp in can_tao_moi["shipto"]:
         ws.append(_dong_shipto(stt, sp["ma_soldto"], sp["ma_shipto"], sp["dia_chi"],
