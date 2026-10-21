@@ -304,15 +304,12 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
     print(f"  Tai dung (da co san): {len(thong_ke['shipto_tai_dung'])} Ship-to")
     if thong_ke["shipto_tao_moi"]:
         print(f"  {len(thong_ke['shipto_tao_moi'])} Sold-to co diem giao MOI - da de trong "
-              "Ma Ship to trong file upload, STM se tu tao diem luc xu ly don. Sau khi "
-              "upload file nay thanh cong len STM, chay 'Xac nhan da upload don hang' de "
-              "tool nho lai cho lan sau.")
+              "Ma Ship to (STM tu tao luc xu ly don)")
 
     if duong_dan_file.name.startswith("preview_"):
         duong_dan_cuoi = duong_dan_file.with_name(duong_dan_file.name[len("preview_"):])
         duong_dan_file.rename(duong_dan_cuoi)
         duong_dan_file = duong_dan_cuoi
-        print(f"  Da doi ten file thanh '{duong_dan_file.name}' - san sang upload len STM.")
 
     return duong_dan_file
 
