@@ -231,6 +231,34 @@ _PHUONG_PRE = re.compile(
 # "thành phố"/"tp" KHÔNG ở đây cùng lý do trên (xem _QUAN_PRE).
 _TINH_PRE = re.compile(r"^(t[iỉ]nh)\s+", re.IGNORECASE)
 
+# Tiền tố cấp hành chính NHÚNG GIỮA một mảnh (không ở đầu) — SAP có khi dính cụm phụ
+# (Khu phố/Tổ/Ấp...) liền với tên Phường/Quận/Tỉnh trong CÙNG MỘT field, không có dấu
+# phẩy ngăn cách (khác bug đã sửa 16/10, vốn chỉ xảy ra giữa các CỘT khác nhau lúc
+# ghép). Ca thật đã vấp 21/10/2026: 'Khu phố 7 Phường Long Bình' bị coi là 1 mảnh
+# "khong_ro" duy nhất vì không BẮT ĐẦU bằng "Phường". CHỈ áp dụng khi mảnh không khớp
+# được tiền tố ở ĐẦU (xem _phan_loai_manh/_loai_rieng_phuong) — không đổi hành vi case
+# cũ. Không gồm viết tắt (tx./p./tt./q.) như _QUAN_PRE/_PHUONG_PRE — mid-string quá dễ
+# khớp nhầm 1 chữ cái lẻ.
+_NHUNG_GIUA = re.compile(
+    r"(?<=\s)(thi\s*x[aã]|th[iị]\s*tr[aấ]n|qu[aậ]n|huy[eệ]n|t[iỉ]nh|ph[uư][ơo]ng|x[aã])\s+",
+    re.IGNORECASE)
+
+
+def _cap_tu_nhung(tu_khop):
+    """Chữ vừa khớp bởi _NHUNG_GIUA (có thể dính liền không khoảng trắng kiểu 'thixa')
+    -> "quan" | "phuong" | "tinh". So sánh sau khi bỏ hết khoảng trắng để không phụ
+    thuộc việc gõ 1 hay 2 khoảng trắng giữa 'thi' và 'xã'."""
+    tu = re.sub(r"\s+", "", tu_khop.lower())
+    if tu in ("thixa", "quan", "huyen"):
+        return "quan"
+    if tu == "tinh":
+        return "tinh"
+    return "phuong"  # phuong|xa|thitran
+
+
+_NHUNG_GIUA_LOAI_RIENG = {"phuong": "phuong", "xa": "xa", "thitran": "thi_tran"}
+
+
 # Phân biệt RIÊNG Phường/Xã/Thị trấn trong nhóm "phuong" ở _PHUONG_PRE — dùng để
 # KHÔNG lẫn 'Phường Thanh Thủy' (mới, đô thị) với 'Xã Thanh Thủy' (mới, nông thôn,
 # ở TỈNH KHÁC) dù chuan_ten() cắt tiền tố làm chúng trùng chữ. Bug thật đã vấp
@@ -254,10 +282,10 @@ _THITRAN_RIENG = re.compile(r"^(th[iị]\s*tr[aấ]n|tt\.?)\s+", re.IGNORECASE)
 
 def _loai_rieng_phuong(manh_goc):
     """-> "phuong" | "xa" | "thi_tran" | None. Chạy TRƯỚC chuan_ten() như _phan_loai_manh."""
-    t = unicodedata.normalize("NFD", str(manh_goc).strip())
-    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
-    t = t.replace("đ", "d").replace("Đ", "D").lower()
-    t = re.sub(r"\s+", " ", t).strip()
+    t_tho = unicodedata.normalize("NFD", str(manh_goc).strip())
+    t_tho = "".join(c for c in t_tho if unicodedata.category(c) != "Mn")
+    t_tho = t_tho.replace("đ", "d").replace("Đ", "D").lower()
+    t = re.sub(r"\s+", " ", t_tho).strip()
     if _PHUONG_RIENG.match(t):
         return "phuong"
     if _XA_RIENG.match(t):
@@ -267,6 +295,9 @@ def _loai_rieng_phuong(manh_goc):
     _, hau_to = _cat_hau_to_anh(t)
     if hau_to:
         return _HAU_TO_ANH_LOAI_RIENG.get(hau_to)
+    m = _NHUNG_GIUA.search(t_tho)
+    if m:
+        return _NHUNG_GIUA_LOAI_RIENG.get(re.sub(r"\s+", "", m.group(1).lower()))
     return None
 
 
@@ -276,10 +307,11 @@ def _phan_loai_manh(manh_goc):
     PHẢI phân loại theo tiền tố TRƯỚC khi gọi chuan_ten() (vốn cắt bỏ tiền tố để so khớp) —
     nếu không 'Phường 11' và 'Quận 11' sẽ trở thành cùng 1 chuỗi '11' sau khi cắt, gây nhận
     nhầm cấp hành chính. Bug thật đã vấp lúc đo thử trên data SAP thật 14/10/2026."""
-    t = unicodedata.normalize("NFD", str(manh_goc).strip())
-    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
-    t = t.replace("đ", "d").replace("Đ", "D").lower()
-    t = re.sub(r"\s+", " ", t).strip()
+    manh_strip = str(manh_goc).strip()
+    t_tho = unicodedata.normalize("NFD", manh_strip)
+    t_tho = "".join(c for c in t_tho if unicodedata.category(c) != "Mn")
+    t_tho = t_tho.replace("đ", "d").replace("Đ", "D").lower()
+    t = re.sub(r"\s+", " ", t_tho).strip()
     if _PHUONG_PRE.match(t):
         cap = "phuong"
     elif _QUAN_PRE.match(t):
@@ -289,6 +321,10 @@ def _phan_loai_manh(manh_goc):
     else:
         _, hau_to = _cat_hau_to_anh(t)
         cap = _HAU_TO_ANH_CAP.get(hau_to, "khong_ro")
+        if cap == "khong_ro":
+            m = _NHUNG_GIUA.search(t_tho)
+            if m:
+                return _cap_tu_nhung(m.group(1)), chuan_ten(manh_strip[m.start(1):])
     return cap, chuan_ten(manh_goc)
 
 
