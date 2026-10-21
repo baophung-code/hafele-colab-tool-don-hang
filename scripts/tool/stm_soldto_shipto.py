@@ -129,7 +129,7 @@ def xu_ly(dong, cache, du_lieu, lay_toa_do=None, cho_phep_tao_moi=True):
     thong_ke = {"soldto_moi": set(), "shipto_moi": set(), "shipto_tai_dung": set(),
                 "loi": set(), "canh_bao_cache_sai": set(), "bo_qua_thieu_dia_chi": set(),
                 "bo_qua_khong_co_toa_do": set(),
-                "can_tao_moi": {"soldto": [], "shipto": [], "ten_soldto": {}}}
+                "can_tao_moi": {"soldto": [], "shipto": [], "ten_soldto": {}, "dia_chi_soldto": {}}}
 
     theo_soldto = {}
     for r in dong:
@@ -228,6 +228,7 @@ def xu_ly(dong, cache, du_lieu, lay_toa_do=None, cho_phep_tao_moi=True):
                 them_soldto(cache, ma_soldto)
                 thong_ke["can_tao_moi"]["soldto"].append(ma_soldto)
                 thong_ke["can_tao_moi"]["ten_soldto"][ma_soldto] = r0.get("_ten_soldto", "")
+                thong_ke["can_tao_moi"]["dia_chi_soldto"][ma_soldto] = r0["N"]
                 thong_ke["soldto_moi"].add(ma_soldto)
 
             them_shipto(cache, ma_soldto, ma_moi, r0["N"], r0["O"], r0["P"])
