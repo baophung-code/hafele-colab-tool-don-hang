@@ -55,10 +55,11 @@ GIAI_THICH_NHOM = {
     NHOM_KHAC: "xem cột Chi tiết",
 }
 _LOAI_TO_NHOM = {
-    "Thiếu ngày gửi / ETD / ETA (cột D, T, U)": NHOM_SAP,
+    "Thiếu ngày gửi / ETD (cột D, T)": NHOM_SAP,
     "Số lượng ≤ 0": NHOM_SAP,
     "Tỉnh SAP và tỉnh theo toạ độ khác nhau": NHOM_DIA_CHI,
     "Địa chỉ cần soát": NHOM_DIA_CHI,
+    "Quận/Huyện trùng tên nhiều nơi": NHOM_DIA_CHI,
     "Không xác định được Quận/Huyện": NHOM_DIA_CHI,
     "Quận không có trong danh sách STM chấp nhận": NHOM_DIA_CHI,
     "Không xác định được Tỉnh": NHOM_DIA_CHI,
@@ -194,6 +195,71 @@ def ghi_de_upload(duong_dan, thay_doi):
             for k in ("L", "N", "O", "P"):
                 if k in d:
                     ws.cell(d["_hang"], KHOA.index(k) + 1).value = d[k]
+        try:
+            wb.save(duong_dan)
+        except PermissionError:
+            raise PermissionError(
+                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
+                "bấm lại nút 3."
+            )
+    finally:
+        wb.close()
+    chuyen_sang_shared_strings(duong_dan)
+
+
+# Khách yêu cầu 21/10/2026: 2 loại cảnh báo nhóm NHOM_SAP cũng được tự xoá ở Bước 2 giống
+# NHOM_DIA_CHI, nếu khách tự điền tay giá trị hợp lệ trực tiếp trong Excel - đổi hướng so với
+# thiết kế ban đầu ("không tự sửa trên Excel được") vì thực tế khách có đủ thông tin (gọi hỏi
+# kho/soát đơn) để điền tay chính xác hơn là bắt buộc phải quay lại sửa SAP rồi chạy lại tool.
+LOAI_THIEU_NGAY = "Thiếu ngày gửi / ETD (cột D, T)"
+LOAI_SO_LUONG_AM = "Số lượng ≤ 0"
+
+
+def doc_lai_canh_bao_sap(duong_dan):
+    """Đọc lại cột D (Ngày gửi y/c), T (ETD), G (Số lượng), AB (Lý do cảnh báo) của sheet
+    'Upload' - dùng ở Bước 2 (xem xoa_canh_bao_sap_goc) để biết dòng nào khách đã tự điền tay
+    ngày/số lượng. Tách riêng khỏi doc_lai_upload (giữ nguyên hợp đồng K/L/M/N/O/P đã có test
+    riêng, không đụng vào)."""
+    wb = openpyxl.load_workbook(duong_dan, data_only=True)
+    try:
+        ws = wb["Upload"]
+        ket_qua = []
+        for i in range(2, ws.max_row + 1):
+            d = {"_hang": i, "AB": ws.cell(i, KHOA.index("AB") + 1).value or ""}
+            for k in ("D", "T", "G"):
+                d[k] = ws.cell(i, KHOA.index(k) + 1).value
+            ket_qua.append(d)
+        return ket_qua
+    finally:
+        wb.close()
+
+
+def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong):
+    """Bước 2: khách đã tự điền tay Ngày gửi y/c + ETD (cột D, T) hoặc sửa đúng Số lượng
+    (cột G) trực tiếp trong Excel - xoá đúng mục cảnh báo tương ứng khỏi cột 'Lý do cảnh báo'
+    (khoá AB) + bỏ tô vàng đúng (các) cột đã sửa, không đụng cảnh báo khác trên cùng dòng
+    (vd 1 dòng vừa thiếu ngày vừa thiếu quận - sửa ngày thì chỉ xoá đúng cảnh báo ngày)."""
+    if not hang_da_sua_ngay and not hang_da_sua_so_luong:
+        return
+    wb = openpyxl.load_workbook(duong_dan)
+    try:
+        ws = wb["Upload"]
+        col_ab = KHOA.index("AB") + 1
+
+        def _xoa_1_loai(hang, loai, cot_bo_to):
+            o = ws.cell(hang, col_ab)
+            if o.value:
+                con_lai = [p for p in str(o.value).split("; ")
+                           if p and p.split(" — ")[0] != loai]
+                o.value = "; ".join(con_lai)
+            for k in cot_bo_to:
+                ws.cell(hang, KHOA.index(k) + 1).fill = PatternFill(fill_type=None)
+
+        for hang in hang_da_sua_ngay:
+            _xoa_1_loai(hang, LOAI_THIEU_NGAY, ("D", "T"))
+        for hang in hang_da_sua_so_luong:
+            _xoa_1_loai(hang, LOAI_SO_LUONG_AM, ("G",))
+
         try:
             wb.save(duong_dan)
         except PermissionError:

@@ -12,8 +12,9 @@ from .cau_hinh import doc_bang_ma_tinh, doc_config
 from .dia_chi_cu import DuLieu, tra_dia_chi
 from .doc_excel import doc_bang
 from .dung_bang import dung_bang
-from .ghi_excel import (GIAI_THICH_NHOM, don_theo_nhom, doc_lai_upload, ghi_de_upload,
-                         ghi_file, nhom_cua, xoa_canh_bao_dia_chi)
+from .ghi_excel import (GIAI_THICH_NHOM, LOAI_SO_LUONG_AM, LOAI_THIEU_NGAY, don_theo_nhom,
+                         doc_lai_canh_bao_sap, doc_lai_upload, ghi_de_upload, ghi_file,
+                         nhom_cua, xoa_canh_bao_dia_chi, xoa_canh_bao_sap_goc)
 from .nhan_dien_file import nhan_dien_thu_muc
 from . import stm_cache, stm_soldto_shipto, trackasia_api
 
@@ -268,6 +269,19 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
     ghi_de_upload(duong_dan_file, [{"_hang": d["_hang"], "N": d["N"], "O": d["O"], "P": d["P"]}
                                     for d in dong])
     xoa_canh_bao_dia_chi(duong_dan_file, hang_da_sua_dung)
+
+    # Khach da tu dien tay Ngay gui/ETD hoac sua dung So luong truc tiep trong Excel - xoa
+    # dung canh bao tuong ung (xem ghi_excel.xoa_canh_bao_sap_goc, doi huong 21/10/2026).
+    dong_sap = doc_lai_canh_bao_sap(duong_dan_file)
+    hang_da_sua_ngay = [
+        d["_hang"] for d in dong_sap
+        if LOAI_THIEU_NGAY in d["AB"] and d["D"] not in (None, "") and d["T"] not in (None, "")
+    ]
+    hang_da_sua_so_luong = [
+        d["_hang"] for d in dong_sap
+        if LOAI_SO_LUONG_AM in d["AB"] and isinstance(d["G"], (int, float)) and d["G"] > 0
+    ]
+    xoa_canh_bao_sap_goc(duong_dan_file, hang_da_sua_ngay, hang_da_sua_so_luong)
 
     if dong_log_dvhc_sai:
         duong_dan_log = _ghi_log_canh_bao(
