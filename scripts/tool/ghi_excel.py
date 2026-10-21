@@ -199,3 +199,34 @@ def ghi_de_upload(duong_dan, thay_doi):
             )
     finally:
         wb.close()
+
+
+def xoa_canh_bao_dia_chi(duong_dan, cac_hang):
+    """Dùng ở Bước 2 (main.tao_file_soldto_shipto), sau khi quét lại Tỉnh/Quận (trực tiếp
+    hợp lệ hoặc tự sửa/suy lại qua tra_dia_chi) thấy dòng đã đúng: xoá các mục cảnh báo
+    thuộc NHOM_DIA_CHI khỏi cột 'Lý do cảnh báo' + bỏ tô vàng cột Địa chỉ/Tỉnh/Quận (N/O/P)
+    của đúng các dòng Excel trong `cac_hang` (số dòng thật, xem doc_lai_upload). Không đụng
+    cảnh báo nhóm khác (vd 'Thiếu Mã đơn hàng') hay dòng không nằm trong `cac_hang`."""
+    if not cac_hang:
+        return
+    wb = openpyxl.load_workbook(duong_dan)
+    try:
+        ws = wb["Upload"]
+        col_ab = KHOA.index("AB") + 1
+        for hang in cac_hang:
+            o = ws.cell(hang, col_ab)
+            if o.value:
+                con_lai = [p for p in str(o.value).split("; ")
+                           if p and nhom_cua(p.split(" — ")[0]) != NHOM_DIA_CHI]
+                o.value = "; ".join(con_lai)
+            for k in ("N", "O", "P"):
+                ws.cell(hang, KHOA.index(k) + 1).fill = PatternFill(fill_type=None)
+        try:
+            wb.save(duong_dan)
+        except PermissionError:
+            raise PermissionError(
+                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
+                "bấm lại nút 3."
+            )
+    finally:
+        wb.close()

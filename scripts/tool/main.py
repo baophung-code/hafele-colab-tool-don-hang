@@ -12,9 +12,10 @@ from .cau_hinh import doc_bang_ma_tinh, doc_config
 from .dia_chi_cu import DuLieu, tra_dia_chi
 from .doc_excel import doc_bang
 from .dung_bang import dung_bang
-from .ghi_excel import GIAI_THICH_NHOM, don_theo_nhom, doc_lai_upload, ghi_de_upload, ghi_file, nhom_cua
+from .ghi_excel import (GIAI_THICH_NHOM, don_theo_nhom, doc_lai_upload, ghi_de_upload,
+                         ghi_file, nhom_cua, xoa_canh_bao_dia_chi)
 from .nhan_dien_file import nhan_dien_thu_muc
-from . import nominatim_api, stm_api, stm_cache, stm_soldto_shipto, trackasia_api
+from . import stm_cache, stm_soldto_shipto, trackasia_api
 
 
 _GIO_VN = datetime.timezone(datetime.timedelta(hours=7))
@@ -196,30 +197,19 @@ def chay(thu_muc_vao, thu_muc_ra, duong_dan_config, duong_dan_bang_tinh):
     return duong_dan_ra
 
 
-def _tao_lay_toa_do(cfg):
-    """-> hàm dia_chi -> (lat, lng) | None. Track Asia làm chính (gọi được ngay, không cần
-    đăng ký). Track Asia lỗi/bị chặn (key dùng chung không có SLA) thì mới rơi xuống Nominatim
-    (OpenStreetMap, không cần key nhưng giới hạn rất khắt khe - 1 request/giây - nên chỉ dùng
-    làm phương án cuối, không gọi trước)."""
-    def lay_toa_do(dia_chi):
-        kq = trackasia_api.toa_do(dia_chi, cfg.trackasia_key)
-        if kq is not None:
-            return kq
-        return nominatim_api.toa_do(dia_chi)
-    return lay_toa_do
-
-
 def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
     """Bước 2: đọc lại file upload_STM_*.xlsx MỚI NHẤT trong thu_muc_ra (đã được khách sửa
-    tay), xử lý Sold-to/Ship-to với cho_phep_tao_moi=True, ghi đè lại đúng file đó + xuất
-    upload_soldto_shipto_*.xlsx nếu có đề xuất tạo mới (chỉ khi tra được toạ độ qua Track
-    Asia - không có toạ độ thì không tạo, xem stm_soldto_shipto.xu_ly).
-    -> (duong_dan_file_upload, duong_dan_file_soldto_shipto_hoac_None)."""
+    tay), xử lý Sold-to/Ship-to với cho_phep_tao_moi=True - tái dùng điểm khớp cache (ghi đè
+    Mã Ship to/Địa chỉ/Tỉnh/Quận), điểm không khớp để TRỐNG Mã Ship to cho STM tự tạo lúc xử
+    lý đơn, ghi đè lại đúng file đó. KHÔNG còn xuất file Excel riêng, KHÔNG gọi geocode lấy
+    toạ độ, KHÔNG tự ghi cache (xem main.xac_nhan_da_upload_don_hang).
+    -> duong_dan_file_upload."""
     thu_muc_ra = Path(thu_muc_ra)
-    cac_file = sorted(thu_muc_ra.glob("upload_STM_*.xlsx"), key=lambda p: p.stat().st_mtime)
+    cac_file = sorted(thu_muc_ra.glob("preview_upload_STM_*.xlsx"),
+                       key=lambda p: p.stat().st_mtime)
     if not cac_file:
         raise LoiNguoiDung(
-            f"Không thấy file upload_STM_*.xlsx nào trong:\n  {thu_muc_ra}\n"
+            f"Không thấy file preview_upload_STM_*.xlsx nào trong:\n  {thu_muc_ra}\n"
             "Hãy bấm nút '2. Chạy' trước để tạo file upload đơn hàng."
         )
     duong_dan_file = cac_file[-1]
@@ -232,38 +222,52 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
             "Không thể xác định Tỉnh/Quận có đúng danh mục STM không."
         )
 
-    cfg = doc_config(duong_dan_config)
-    lay_toa_do = _tao_lay_toa_do(cfg)
-
     # Vong 1 (khong goi mang): check Tinh/Quan khach tu dien co dung danh_muc_stm.csv
-    # khong TRUOC KHI dong cham vao Sold-to/Ship-to (khop cache, goi Track Asia/Nominatim,
-    # sinh ma, ghi cache...). Loi go nho (vd thieu/du vai ky tu) tu sua duoc qua khop mo
+    # khong TRUOC KHI dong cham vao Sold-to/Ship-to (khop cache...). Loi go nho (vd thieu/du
+    # vai ky tu) tu sua duoc qua khop mo
     # (xem chuan_cap_stm) thi IM LANG sua luon, khong can bao - chi bao that su khong
     # khop duoc gi. Con BAT KY 1 dong nao van sai sau khi da thu sua -> DUNG o day, KHONG
     # chay tiep buoc Sold-to/Ship-to cho ca nhung dong dung trong cung lan nay (tranh phi
     # cong goi mang/tao Ship-to roi phai lam lai khi khach sua xong con sai khac).
     dong = doc_lai_upload(duong_dan_file)
     dong_log_dvhc_sai = []
+    hang_da_sua_dung = []
     for d in dong:
         thieu = [c for c in ("O", "P") if not str(d.get(c, "")).strip()]
+        chuan = None
         if not thieu:
             chuan = du_lieu_dia_chi.chuan_cap_stm(d["O"], d["P"])
-            if chuan is None:
-                thieu = ["O", "P"]
-                dong_cb = (
-                    f"Dong {d['_hang']}: Tinh/Quan '{d['O']}'/'{d['P']}' ban tu dien khong co "
-                    "trong danh muc STM - sua lai dung ten roi bam lai nut 3")
-                dong_log_dvhc_sai.append(dong_cb)
-                print(f"  [!] {dong_cb}")
-            else:
-                d["O"], d["P"] = chuan
+        if chuan is None:
+            # Chua co Tinh/Quan hop le (thieu hoac sai chinh ta qua xa de fuzzy sua duoc) -
+            # thu quet lai tu Dia chi + Tinh da sua tay, CHAP NHAN CA ten DVHC CU lan MOI
+            # 2025 (vd khach go ten phuong/tinh moi) - dung lai dung engine suy_dvhc_tu_text
+            # qua crosswalk_2025.csv (von da co san ca ten cu/moi), KHONG goi mang/geocode.
+            kq = tra_dia_chi(d["N"], d["O"], du_lieu_dia_chi)
+            if not kq["ly_do"]:
+                chuan = (kq["O"], kq["P"])
+                if kq["N"]:
+                    d["N"] = kq["N"]
+        if chuan is None:
+            thieu = ["O", "P"]
+            dong_cb = (
+                f"Dong {d['_hang']}: Tinh/Quan '{d['O']}'/'{d['P']}' ban tu dien khong co "
+                "trong danh muc STM, du da thu nhan dien ca ten DVHC cu lan moi tu Dia chi - "
+                "sua lai dung ten roi bam lai nut 3")
+            dong_log_dvhc_sai.append(dong_cb)
+            print(f"  [!] {dong_cb}")
+        else:
+            d["O"], d["P"] = chuan
+            thieu = []
+            hang_da_sua_dung.append(d["_hang"])
         d["_thieu"] = thieu
         d["_ly_do"] = []
 
-    # Ghi lai ngay nhung o da tu sua chinh ta (khong doi L/N) - du con sai cho khac,
-    # lan chay sau khach khong phai sua lai nhung cho da tu dung.
-    ghi_de_upload(duong_dan_file, [{"_hang": d["_hang"], "O": d["O"], "P": d["P"]}
+    # Ghi lai ngay nhung o da tu sua chinh ta/nhan dien lai tu Dia chi (ca N neu dia chi
+    # duoc rap lai qua tra_dia_chi) - du con sai cho khac, lan chay sau khach khong phai
+    # sua lai nhung cho da tu dung.
+    ghi_de_upload(duong_dan_file, [{"_hang": d["_hang"], "N": d["N"], "O": d["O"], "P": d["P"]}
                                     for d in dong])
+    xoa_canh_bao_dia_chi(duong_dan_file, hang_da_sua_dung)
 
     if dong_log_dvhc_sai:
         duong_dan_log = _ghi_log_canh_bao(
@@ -276,13 +280,14 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
               "Tinh/Quan o cac dong bi bao sai (xem chi tiet trong file canh bao "
               f"'{duong_dan_log.name if duong_dan_log else ''}'),")
         print("        roi CHAY LAI Buoc 2 (chon dung file vua sua) de xu ly tiep.")
-        return duong_dan_file, None
+        return duong_dan_file
 
     duong_dan_cache = Path(duong_dan_du_lieu) / "stm_cache.json"
     cache = stm_cache.doc_cache(duong_dan_cache)
-    thong_ke = stm_soldto_shipto.xu_ly(dong, cache, du_lieu_dia_chi, lay_toa_do,
-                                        cho_phep_tao_moi=True)
-    stm_cache.ghi_cache(duong_dan_cache, cache)
+    thong_ke = stm_soldto_shipto.xu_ly(dong, cache, du_lieu_dia_chi, cho_phep_tao_moi=True)
+    # KHONG ghi cache o day - doi den main.xac_nhan_da_upload_don_hang(), chay SAU KHI khach
+    # xac nhan da upload that len STM (sua gap kien truc da ghi nhan 20/10/2026: cache khong
+    # nen lac quan ghi ngay luc de xuat).
 
     thay_doi = [{"_hang": d["_hang"], "L": d["L"], "N": d["N"], "O": d["O"], "P": d["P"]}
                 for d in dong]
@@ -291,36 +296,76 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
     dong_log = list(sorted(thong_ke["canh_bao_cache_sai"]))
     dong_log += [f"Bo qua Ship-to '{ma}' - con thieu Tinh/Quan, sua file roi bam lai nut 3"
                  for ma in sorted(thong_ke["bo_qua_thieu_dia_chi"])]
-    dong_log += [f"Bo qua Ship-to '{ma}' - khong tra duoc toa do (Track Asia loi/khoa). "
-                 "Dia chi van giu nguyen trong file upload don hang - STM se tu tao diem "
-                 "(khong toa do) luc xu ly don."
-                 for ma in sorted(thong_ke["bo_qua_khong_co_toa_do"])]
     duong_dan_log = _ghi_log_canh_bao(
         thu_muc_ra, f"canhbao_soldto_shipto_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}.txt", dong_log)
     if duong_dan_log:
         print(f"  Co {len(dong_log)} canh bao chi tiet - xem file: {duong_dan_log.name}")
 
-    n_soldto = len(thong_ke["can_tao_moi"]["soldto"])
-    n_shipto = len(thong_ke["can_tao_moi"]["shipto"])
-    print(f"  De xuat tao moi: {n_soldto} Sold-to, {n_shipto} Ship-to")
-    if thong_ke["shipto_tai_dung"]:
-        print(f"  Tai dung (da co san): {len(thong_ke['shipto_tai_dung'])} Ship-to")
+    print(f"  Tai dung (da co san): {len(thong_ke['shipto_tai_dung'])} Ship-to")
+    if thong_ke["shipto_tao_moi"]:
+        print(f"  {len(thong_ke['shipto_tao_moi'])} Sold-to co diem giao MOI - da de trong "
+              "Ma Ship to trong file upload, STM se tu tao diem luc xu ly don. Sau khi "
+              "upload file nay thanh cong len STM, chay 'Xac nhan da upload don hang' de "
+              "tool nho lai cho lan sau.")
 
-    duong_dan_stm = None
-    if n_soldto or n_shipto:
-        duong_dan_stm = thu_muc_ra / (
-            f"upload_soldto_shipto_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}.xlsx")
-        stm_api.ghi_file_soldto_shipto(duong_dan_stm, thong_ke["can_tao_moi"])
-        print(f"  Da ghi file can tao moi: {duong_dan_stm.name}")
-        print("    (import file nay qua UI Import Excel cua STM truoc khi dung don)")
+    if duong_dan_file.name.startswith("preview_"):
+        duong_dan_cuoi = duong_dan_file.with_name(duong_dan_file.name[len("preview_"):])
+        duong_dan_file.rename(duong_dan_cuoi)
+        duong_dan_file = duong_dan_cuoi
+        print(f"  Da doi ten file thanh '{duong_dan_file.name}' - san sang upload len STM.")
 
-    return duong_dan_file, duong_dan_stm
+    return duong_dan_file
+
+
+def xac_nhan_da_upload_don_hang(thu_muc_ra, duong_dan_du_lieu):
+    """Chạy SAU KHI khách đã tự import thành công file upload_STM_*.xlsx (đơn hàng, KHÔNG
+    còn tiền tố 'preview_') lên STM. Đọc lại đúng file đó, tìm các dòng tool đã để TRỐNG Mã
+    Ship to vì không khớp cache (nhóm 'điểm mới', xem stm_soldto_shipto.xu_ly) - các điểm
+    này giờ khách đã upload thật, STM đã tự tạo điểm khi xử lý đơn - ghi địa chỉ/tỉnh/quận
+    (KHÔNG kèm mã - tool không biết STM sinh mã gì) vào cache để các lần chạy sau không còn
+    coi là hoàn toàn mới.
+    -> (duong_dan_file, so_diem_moi_ghi_vao_cache)."""
+    thu_muc_ra = Path(thu_muc_ra)
+    cac_file = sorted(thu_muc_ra.glob("upload_STM_*.xlsx"), key=lambda p: p.stat().st_mtime)
+    if not cac_file:
+        raise LoiNguoiDung(
+            f"Không thấy file upload_STM_*.xlsx (đã hoàn tất, không còn tiền tố "
+            f"'preview_') nào trong:\n  {thu_muc_ra}\n"
+            "Hãy bấm '3. Tạo file Sold-to/Ship-to trên STM' và sửa hết lỗi trước, upload "
+            "file đó lên STM, rồi mới xác nhận."
+        )
+    duong_dan_file = cac_file[-1]
+
+    dong = doc_lai_upload(duong_dan_file)
+    duong_dan_cache = Path(duong_dan_du_lieu) / "stm_cache.json"
+    cache = stm_cache.doc_cache(duong_dan_cache)
+
+    diem_moi = {}
+    for d in dong:
+        ma_soldto = d.get("K", "")
+        if not ma_soldto or str(d.get("L", "")).strip():
+            continue
+        dia_chi, tinh, quan = d.get("N", ""), d.get("O", ""), d.get("P", "")
+        if not (dia_chi and tinh and quan):
+            continue
+        diem_moi[(ma_soldto, dia_chi)] = (tinh, quan)
+
+    for (ma_soldto, dia_chi), (tinh, quan) in diem_moi.items():
+        stm_cache.them_diem_moi_khong_ma(cache, ma_soldto, dia_chi, tinh, quan)
+    stm_cache.ghi_cache(duong_dan_cache, cache)
+
+    print(f"  Da ghi {len(diem_moi)} diem moi vao cache (khong kem ma Ship-to).")
+    return duong_dan_file, len(diem_moi)
 
 
 def _duong_dan_file_ra(thu_muc_ra):
     """Tên file kèm giây để giảm khả năng trùng; nếu vẫn trùng (2 lần chạy
-    trong cùng 1 giây) thì tự thêm hậu tố _2, _3... để không đè file cũ."""
-    goc = f"upload_STM_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}"
+    trong cùng 1 giây) thì tự thêm hậu tố _2, _3... để không đè file cũ.
+
+    Tiền tố 'preview_' đánh dấu đây là file CHƯA chắc chắn đúng — khách cần mở Excel soát
+    lại trước khi bấm nút 3. Nút 3 chạy xong không còn lỗi Tỉnh/Quận/Sold-to-Ship-to nào sẽ
+    tự đổi tên bỏ tiền tố này (xem tao_file_soldto_shipto)."""
+    goc = f"preview_upload_STM_{_gio_vn_hien_tai():%Y%m%d_%H%M%S}"
     duong_dan = thu_muc_ra / f"{goc}.xlsx"
     i = 2
     while duong_dan.exists():

@@ -1,34 +1,18 @@
 # -*- coding: utf-8 -*-
-"""Gọi Track Asia textsearch để lấy toạ độ (lat/lng) cho 1 địa chỉ.
+"""Gọi Track Asia textsearch để làm trọng tài phân xử khi suy ĐVHC cũ từ chữ bị mơ hồ.
 
-CHỈ dùng khi tạo Ship-to MỚI trên STM (xem main.tao_file_soldto_shipto) - không dùng cho toàn
-bộ địa chỉ như Goong trước đây (14/10/2026 đã bỏ Goong vì khối lượng gọi quá lớn). Ở đây khối
-lượng nhỏ (chỉ điểm giao mới, không phải mọi dòng đơn) nên chấp nhận gọi mạng lại.
+CHỈ dùng làm trọng tài giữa các ứng viên đã suy ra sẵn bằng chữ (xem
+dia_chi_cu.py:_chon_ung_vien_bang_geocode) - không dùng để tự ý tin geocode, và không dùng
+cho toàn bộ địa chỉ như Goong trước đây (14/10/2026 đã bỏ Goong vì khối lượng gọi quá lớn).
 
 Không hàm nào được ném exception - lỗi mạng/parse -> trả None, để tầng trên tự quyết định bỏ
-qua (xem stm_soldto_shipto.xu_ly, tham số lay_toa_do).
+qua.
 """
 import json
 import urllib.parse
 import urllib.request
 
 _URL = "https://maps.track-asia.com/api/v2/place/textsearch/json"
-
-
-def toa_do(dia_chi, key, timeout=10, mo_url=urllib.request.urlopen):
-    """-> (lat, lng) hoặc None nếu không tra được (mạng lỗi, key bị chặn, không có kết quả,
-    response không parse được). `mo_url` tiêm được cho test, mặc định gọi mạng thật."""
-    query = urllib.parse.urlencode({
-        "key": key, "query": dia_chi, "radius": 5000,
-        "new_admin": "true", "include_old_admin": "true",
-    })
-    try:
-        with mo_url(f"{_URL}?{query}", timeout=timeout) as r:
-            kq = json.loads(r.read().decode("utf-8"))
-        loc = kq["results"][0]["geometry"]["location"]
-        return loc["lat"], loc["lng"]
-    except Exception:
-        return None
 
 
 def dvhc_cu(dia_chi, key, timeout=10, mo_url=urllib.request.urlopen):

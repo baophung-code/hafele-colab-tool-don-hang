@@ -23,13 +23,15 @@ def ghi_cache(duong_dan, cache):
         json.dump(cache, f, ensure_ascii=False, indent=2)
 
 
-def them_soldto(cache, ma_soldto):
-    if ma_soldto not in cache["soldto"]:
-        cache["soldto"].append(ma_soldto)
-
-
-def them_shipto(cache, ma_soldto, ma_shipto, dia_chi, tinh, quan):
+def them_diem_moi_khong_ma(cache, ma_soldto, dia_chi, tinh, quan):
+    """Ghi 1 địa chỉ MỚI (Mã Ship to đã để trống trong file upload đơn hàng, xem
+    stm_soldto_shipto.xu_ly) vào cache - CHẠY SAU KHI khách xác nhận đã upload thật lên STM
+    (xem main.xac_nhan_da_upload_don_hang), không ghi lạc quan ngay lúc xử lý. Bản ghi
+    KHÔNG có 'ma' thật (STM tự sinh mã lúc xử lý đơn, tool không biết) - 'ma' để rỗng, và
+    stm_soldto_shipto.xu_ly() sẽ KHÔNG BAO GIỜ coi bản ghi rỗng mã là ứng viên để tái dùng
+    (xem các chỗ `if not sp.get("ma"): continue`). Không thêm trùng nếu đã có bản ghi cùng
+    địa chỉ (so khớp nguyên văn, địa chỉ đưa vào đây đã được main.py chuẩn hoá/so khớp)."""
     ds = cache["shipto"].setdefault(ma_soldto, [])
-    if any(ban_ghi["ma"] == ma_shipto for ban_ghi in ds):
+    if any(ban_ghi["dia_chi"] == dia_chi for ban_ghi in ds):
         return
-    ds.append({"ma": ma_shipto, "dia_chi": dia_chi, "tinh": tinh, "quan": quan})
+    ds.append({"ma": "", "dia_chi": dia_chi, "tinh": tinh, "quan": quan})
