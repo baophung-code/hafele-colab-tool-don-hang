@@ -7,6 +7,8 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from .xlsx_shared_strings import chuyen_sang_shared_strings
+
 # Đúng thứ tự template. Cột trống giữa "Số lượng" và "Storage location" (khoá
 # nội bộ "H") đã bỏ khỏi file output theo yêu cầu khách 25/09 -> không xuất hiện
 # trong TEN_COT/KHOA, dù dung_bang.py vẫn còn giữ khoá "H" nội bộ (luôn rỗng).
@@ -89,6 +91,7 @@ def ghi_file(duong_dan, dong):
         )
     finally:
         wb.close()
+    chuyen_sang_shared_strings(duong_dan)
 
 
 def _sheet_upload(ws, dong):
@@ -200,6 +203,7 @@ def ghi_de_upload(duong_dan, thay_doi):
             )
     finally:
         wb.close()
+    chuyen_sang_shared_strings(duong_dan)
 
 
 def xoa_canh_bao_dia_chi(duong_dan, cac_hang):
@@ -231,3 +235,4 @@ def xoa_canh_bao_dia_chi(duong_dan, cac_hang):
             )
     finally:
         wb.close()
+    chuyen_sang_shared_strings(duong_dan)
