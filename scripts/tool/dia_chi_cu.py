@@ -443,14 +443,22 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
                         "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": loc or uv}
 
     def _tim_ung_vien_phuong(ct, manh_goc):
-        """ct -> ứng viên, thử theo thứ tự: tên MỚI cùng cấp -> tên MỚI gộp chung ->
-        tên CŨ (phuong_cu_flat) -> nếu vẫn rỗng và manh_goc có dấu gạch ngang, thử lại
-        toàn bộ chuỗi trên với phần TRƯỚC dấu gạch ngang (xem _chuan_ten_truoc_gach_ngang)."""
-        tim = du_lieu.phuong_moi.get(ct, []) or du_lieu.phuong_cu_flat.get(ct, [])
+        """ct -> ứng viên, GỘP cả tên MỚI (phuong_moi) + tên CŨ (phuong_cu_flat), dedup
+        giữ thứ tự. Trước đây dùng OR (ưu tiên phuong_moi, chỉ rơi về phuong_cu_flat khi
+        rỗng) — gây bug 28/10/2026 với "phường Hòa Phú, Bình Dương" / "Phường Trường Thạnh,
+        HCM": phuong_moi có ứng viên ở TỈNH KHÁC (Hà Nội/Đắk Lắk cho Hòa Phú, Cần Thơ/Sóc
+        Trăng cho Trường Thạnh), lọc theo tỉnh thật ra rỗng → báo "mơ hồ" mặc dù
+        phuong_cu_flat có đúng ứng viên trong tỉnh (Thủ Dầu Một / Thủ Đức). Gộp lại rồi
+        để bước lọc tỉnh phía dưới sort out — tỉnh đã biết → bỏ ứng viên tỉnh sai; tỉnh
+        chưa biết → đã dựa vào stm_nhat_quan/dau_thanh/mo_ho như cũ. Nếu vẫn rỗng và
+        manh_goc có dấu gạch ngang, thử lại với phần TRƯỚC dấu (_chuan_ten_truoc_gach_ngang)."""
+        tim = list(dict.fromkeys(
+            du_lieu.phuong_moi.get(ct, []) + du_lieu.phuong_cu_flat.get(ct, [])))
         if not tim:
             alt = _chuan_ten_truoc_gach_ngang(manh_goc)
             if alt and alt != ct:
-                tim = du_lieu.phuong_moi.get(alt, []) or du_lieu.phuong_cu_flat.get(alt, [])
+                tim = list(dict.fromkeys(
+                    du_lieu.phuong_moi.get(alt, []) + du_lieu.phuong_cu_flat.get(alt, [])))
         return tim
 
     if chon is None:
