@@ -111,9 +111,9 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
         # 21/10/2026 không cần báo, khác với Mã đơn hàng vẫn giữ cảnh báo.
         ma_dat = str(it.get("Reference Document", "")).strip()
 
-        # Thiếu Mã Ship to (vd nhóm DECO) không còn cảnh báo - đã xác nhận nghiệp vụ
-        # 16/10/2026: STM tự khớp địa chỉ/đề xuất tạo điểm trong cùng Sold-to lúc lên
-        # đơn, không cần tool báo lại hay tô vàng.
+        # Thiếu Mã Ship to (vd nhóm DECO) cảnh báo được SINH SAU, ở stm_soldto_shipto.xu_ly()
+        # - chỉ cảnh báo khi KHÔNG khớp được cache nào trong cùng Sold-to (đổi hướng
+        # 29/10/2026). Ở đây giữ nguyên gán L theo SAP, không tự báo thiếu.
         l = ship_to.get(ma_don, "")
 
         ngay = ngay_kh.get(odo)

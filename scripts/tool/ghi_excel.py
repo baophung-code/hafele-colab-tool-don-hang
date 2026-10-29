@@ -57,6 +57,7 @@ GIAI_THICH_NHOM = {
 _LOAI_TO_NHOM = {
     "Thiếu ngày gửi / ETD (cột D, T)": NHOM_SAP,
     "Số lượng ≤ 0": NHOM_SAP,
+    "Thiếu Mã Ship to": NHOM_SAP,
     "Tỉnh SAP và tỉnh theo toạ độ khác nhau": NHOM_DIA_CHI,
     "Địa chỉ cần soát": NHOM_DIA_CHI,
     "Quận/Huyện trùng tên nhiều nơi": NHOM_DIA_CHI,

@@ -3,13 +3,14 @@
 KHÔNG gọi mạng. Khi khớp mờ ra 1 Ship-to có sẵn, lấy cả Tỉnh/Quận/Địa chỉ đã đăng ký trên STM
 (không chỉ địa chỉ như bản cũ) - xem spec §2.5: cache Ship-to đã kiêm vai trò "bộ nhớ địa chỉ".
 
-Không khớp được cache -> để TRỐNG Mã Ship to (cột 'L'), KHÔNG tự sinh mã mới, KHÔNG gọi
-geocode lấy toạ độ, KHÔNG tự ghi cache ngay (đổi hướng 21/10/2026 - xem
-docs/superpowers/plans/2026-10-21-doi-logic-soldto-shipto-de-trong-ma-moi.md): để trống cho
-STM tự tạo điểm khi xử lý đơn (đúng tinh thần đã xác nhận nghiệp vụ 16/10/2026 cho nhóm DECO,
-giờ áp dụng cho MỌI điểm mới, không chỉ DECO). Việc ghi các điểm mới vào cache dời sang
-main.xac_nhan_da_upload_don_hang(), chỉ chạy SAU KHI khách xác nhận đã upload thật lên STM -
-tránh cache lạc quan sai khi khách chưa thật sự import (gap đã ghi nhận 20/10/2026).
+Không khớp cache + SAP CÓ sẵn Mã Ship to gốc -> GIỮ NGUYÊN mã gốc đó (đổi hướng 29/10/2026):
+STM tự khớp địa chỉ/đề xuất tạo mới lúc lên đơn, mã Hafele cũ gắn trên SAP vẫn là đầu mối hữu
+ích để STM tra. Không khớp cache + SAP KHÔNG có mã (nhóm DECO) -> để trống + cảnh báo
+"Thiếu Mã Ship to" (tô vàng cột L, nhóm NHOM_SAP - khách phải báo bộ phận SAP hoặc tự gõ mã).
+KHÔNG tự sinh mã mới, KHÔNG gọi geocode, KHÔNG tự ghi cache ngay. Việc ghi điểm mới vào cache
+dời sang main.xac_nhan_da_upload_don_hang(), chạy SAU KHI khách xác nhận đã upload thật lên STM
+- và chỉ ghi dòng có L TRỐNG (DECO), dòng giữ mã gốc SAP không ghi (không biết STM nhận mã đó
+hay tự tạo mã khác, giữ gap đã chấp nhận 20/10/2026).
 
 Luồng tách 2 bước (xem docs/superpowers/specs/2026-10-15-tach-2-buoc-soldto-shipto-design.md):
 - Bước 1 (main.chay()): gọi xu_ly(..., cho_phep_tao_moi=False) - chỉ tái dùng, không đụng
@@ -68,6 +69,7 @@ _LY_DO_DVHC = (
     "Quận không có trong danh sách STM chấp nhận", "Không xác định được Tỉnh",
     "Tỉnh độ tin cậy thấp",
 )
+LY_DO_THIEU_MA_SHIPTO = "Thiếu Mã Ship to"
 
 
 def _nhom_theo_dia_chi(rows):
@@ -103,6 +105,13 @@ def _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke, du_lieu, bo
                 ma_khop, ban_ghi_khop = sp["ma"], sp
                 break
         if ma_khop is None:
+            # DECO - khong co ma goc SAP de giu, de trong + canh bao "Thieu Ma Ship to" de
+            # khach biet (NHOM_SAP: khong tu sua Excel duoc, phai bao SAP hoac go tay neu biet).
+            for r in rs:
+                if "L" not in r["_thieu"]:
+                    r["_thieu"].append("L")
+                if LY_DO_THIEU_MA_SHIPTO not in r["_ly_do"]:
+                    r["_ly_do"].append(LY_DO_THIEU_MA_SHIPTO)
             continue
         for r in rs:
             r["L"] = ma_khop
@@ -112,7 +121,8 @@ def _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke, du_lieu, bo
             for c in ("L", "N", "O", "P"):
                 if c in r["_thieu"]:
                     r["_thieu"].remove(c)
-            r["_ly_do"] = [ly for ly in r["_ly_do"] if ly not in _LY_DO_DVHC]
+            r["_ly_do"] = [ly for ly in r["_ly_do"]
+                           if ly not in _LY_DO_DVHC and ly != LY_DO_THIEU_MA_SHIPTO]
         thong_ke["shipto_tai_dung"].add(ma_khop)
 
 
@@ -210,8 +220,10 @@ def xu_ly(dong, cache, du_lieu, cho_phep_tao_moi=True):
                 thong_ke["bo_qua_thieu_dia_chi"].add(ma_shipto)
                 continue
 
-            for r in rs:
-                r["L"] = ""
+            # Khong khop cache nhung SAP co san ma goc -> GIU NGUYEN ma do (doi huong 29/10/2026):
+            # STM van tu khop dia chi/de xuat tao moi luc len don, ma Hafele cu la dau moi huu
+            # ich de STM tra. Khong xoa L nua, khong canh bao - khac nhanh DECO (khong co ma de
+            # neo, phai bao thieu).
             thong_ke["shipto_tao_moi"].add(ma_soldto)
 
     return thong_ke

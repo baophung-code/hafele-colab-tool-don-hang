@@ -322,8 +322,9 @@ def tao_file_soldto_shipto(thu_muc_ra, duong_dan_du_lieu, duong_dan_config):
 
     print(f"  Tai dung (da co san): {len(thong_ke['shipto_tai_dung'])} Ship-to")
     if thong_ke["shipto_tao_moi"]:
-        print(f"  {len(thong_ke['shipto_tao_moi'])} Sold-to co diem giao MOI - da de trong "
-              "Ma Ship to (STM tu tao luc xu ly don)")
+        print(f"  {len(thong_ke['shipto_tao_moi'])} Sold-to co diem giao MOI - giu nguyen "
+              "Ma Ship to goc SAP (STM tu khop/tao luc xu ly don); dong DECO khong co ma "
+              "goc -> de trong + canh bao 'Thieu Ma Ship to'")
 
     if duong_dan_file.name.startswith("preview_"):
         duong_dan_cuoi = duong_dan_file.with_name(duong_dan_file.name[len("preview_"):])
