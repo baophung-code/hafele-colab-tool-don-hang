@@ -114,7 +114,7 @@ class DuLieu:
     Nhận file-like object (không phải đường dẫn) để test truyền StringIO vào được.
     """
 
-    def __init__(self, f_crosswalk, f_danh_muc, f_alias):
+    def __init__(self, f_crosswalk, f_danh_muc, f_alias, f_phuong_pre2020_hcm=None):
         self.ten_quan = {}            # chuan_ten(quan_cu) -> [(tinh_cu, quan_cu), ...]
         self.phuong_moi = {}          # chuan_ten(phuong_moi) -> [(tinh_cu, quan_cu), ...]
         # (loai_rieng, chuan_ten(phuong_moi)) -> [...] — phân biệt Phường/Xã/Thị trấn,
@@ -169,6 +169,24 @@ class DuLieu:
                 tinh = d["tinh"].strip()
                 if tinh:
                     self._stm_quan[(chuan_ten(tinh), chuan_ten(ten))] = (tinh, ten)
+
+        # Phường pre-2020 ở HCM — map về Quận 2 / Quận 9 / Quận Thủ Đức (các quận bị
+        # sáp nhập năm 2020 thành TP Thủ Đức, nhưng STM vẫn giữ cả 3 quận cũ). Nếu
+        # không nạp (test cũ) thì rỗng, logic refine bên dưới bỏ qua.
+        self._phuong_pre2020_hcm = {}
+        if f_phuong_pre2020_hcm is not None:
+            for d in csv.DictReader(f_phuong_pre2020_hcm):
+                p = d.get("phuong", "").strip()
+                q = d.get("quan_pre2020", "").strip()
+                if p and q:
+                    self._phuong_pre2020_hcm[chuan_ten(p)] = q
+
+    def quan_pre2020_hcm(self, phuong):
+        """Phường ở TP Thủ Đức (HCM) -> tên quận pre-2020 (Quận 2/Quận 9/Quận Thủ
+        Đức) đúng chính tả danh mục STM. Không tra ra -> None."""
+        if not phuong:
+            return None
+        return self._phuong_pre2020_hcm.get(chuan_ten(phuong))
 
     def tinh_moi_cua(self, tinh_cu):
         """Tỉnh CŨ -> tên tỉnh MỚI 2025 đã nuốt nó. Không biết -> ''."""
@@ -587,5 +605,28 @@ def tra_dia_chi(dia_chi_goc, ten_tinh_rg, du_lieu, lay_dvhc_cu_tu_geocode=None):
                 "ly_do": "khong_hop_le_stm",
                 "tinh_tho": s["tinh_cu"], "quan_tho": s["quan_cu"]}
     tinh_stm, quan_stm = ten
+    # TP Thủ Đức (HCM, hợp 2020 từ Q2+Q9+Thủ Đức) — STM vẫn giữ cả 3 quận cũ. Nếu
+    # phường thuộc Q2/Q9 pre-2020, ghi đè quận về đúng Q2/Q9 để STM không báo lệch
+    # tọa độ.
+    if tinh_stm == "Hồ Chí Minh" and quan_stm == "Quận Thủ Đức":
+        q = _refine_hcm_thuduc(s.get("phuong_cu", ""), dia_chi_goc, du_lieu)
+        if q:
+            quan_stm = q
     N = ghep_dia_chi_cu(dia_chi_goc, s["phuong_cu"], quan_stm, tinh_stm)
     return {"N": N, "O": tinh_stm, "P": quan_stm, "do_tin": "CAO", "ly_do": ""}
+
+
+def _refine_hcm_thuduc(phuong_cu, dia_chi_goc, du_lieu):
+    """Phường thuộc Q2/Q9/Thủ Đức pre-2020 -> trả quận pre-2020 đúng chính tả danh
+    mục STM. Thử theo phuong_cu đã suy; nếu rỗng/không tra được thì parse mảnh của
+    địa chỉ gốc tìm phường. Không ra -> None (giữ Quận Thủ Đức mặc định)."""
+    q = du_lieu.quan_pre2020_hcm(phuong_cu)
+    if q:
+        return q
+    for m_goc in [_bo_ngoac_bao_quanh(x) for x in str(dia_chi_goc).split(",") if x.strip()]:
+        cap, ct = _phan_loai_manh(m_goc)
+        if cap == "phuong":
+            q = du_lieu.quan_pre2020_hcm(ct)
+            if q:
+                return q
+    return None

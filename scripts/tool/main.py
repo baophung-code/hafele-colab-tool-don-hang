@@ -72,7 +72,12 @@ def _nap_du_lieu_dia_chi(duong_dan_du_lieu):
         with open(d / "crosswalk_2025.csv", encoding="utf-8-sig") as f1, \
              open(d / "danh_muc_stm.csv", encoding="utf-8-sig") as f2, \
              open(d / "alias_ten.csv", encoding="utf-8-sig") as f3:
-            return DuLieu(f1, f2, f3)
+            f4 = None
+            p4 = d / "phuong_pre2020_hcm.csv"
+            if p4.exists():
+                with open(p4, encoding="utf-8-sig") as f4_open:
+                    return DuLieu(f1, f2, f3, f4_open)
+            return DuLieu(f1, f2, f3, f4)
     except Exception:
         return None
 

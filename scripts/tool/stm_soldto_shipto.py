@@ -18,6 +18,7 @@ Luồng tách 2 bước (xem docs/superpowers/specs/2026-10-15-tach-2-buoc-soldt
   đọc lại từ file upload đã sửa - lúc này mới để trống Mã Ship to cho các dòng không khớp.
 """
 from .dia_chi_so_khop import parse_address, same_place
+from .dia_chi_cu import chuan_ten, suy_dvhc_tu_text
 
 # same_place()/parse_address() được tune cho BBGH (gom địa chỉ SAP sạch, xem
 # docs/QUYLUAT_GOM_BBGH.md §6) - KHÔNG sửa 2 hàm đó. Ở đây so khớp địa chỉ cache (vốn đến từ
@@ -37,6 +38,31 @@ def _du_tin_cay_de_tai_dung(toks_moi, toks_sp):
     return same_place(toks_moi, toks_sp)
 
 
+def _cache_dong_bo_dia_chi(sp, du_lieu, canh_bao, bo_nho):
+    """True = tin bản ghi cache, False = BỎ QUA (tỉnh/quận cache mâu thuẫn với chính
+    địa chỉ text của nó - vd bản ghi tạo tay nhập Hà Nội/Ba Đình nhưng địa chỉ ghi
+    Dĩ An, Bình Dương, phát hiện 29/10/2026). Chỉ bác khi suy chữ từ địa chỉ ra tỉnh
+    với độ tin cậy CAO và khác tỉnh cache; mơ hồ hoặc không ra -> cho qua, không bác
+    oan. Kết quả cache theo chuỗi địa chỉ để không gọi lặp."""
+    dia_chi = sp.get("dia_chi", "") or ""
+    if dia_chi in bo_nho:
+        return bo_nho[dia_chi]
+    s = suy_dvhc_tu_text(dia_chi, "", du_lieu)
+    if s.get("ly_do") or s.get("do_tin") != "CAO" or not s.get("tinh_cu"):
+        bo_nho[dia_chi] = True
+        return True
+    tinh_text = du_lieu.ten_stm_tinh(s["tinh_cu"]) or s["tinh_cu"]
+    tinh_cache = sp.get("tinh", "") or ""
+    if chuan_ten(tinh_text) != chuan_ten(tinh_cache):
+        canh_bao.add(
+            f"Ship-to {sp.get('ma','?')} tren STM dang sai Tinh "
+            f"(cache: {tinh_cache}, dia chi text suy ra: {tinh_text}) - bo qua, khong dung")
+        bo_nho[dia_chi] = False
+        return False
+    bo_nho[dia_chi] = True
+    return True
+
+
 _LY_DO_DVHC = (
     "Không xác định được Quận/Huyện", "Quận/Huyện hoặc Phường/Xã trùng tên nhiều nơi",
     "Quận không có trong danh sách STM chấp nhận", "Không xác định được Tỉnh",
@@ -51,7 +77,7 @@ def _nhom_theo_dia_chi(rows):
     return nhom
 
 
-def _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke):
+def _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke, du_lieu, bo_nho_check):
     """Dòng SAP không có sẵn Mã Ship to (vd nhóm DECO) - theo xác nhận nghiệp vụ 16/10/2026:
     STM tự check địa chỉ khi xử lý đơn, khớp ĐÚNG 1 điểm có sẵn trong cùng Sold-to thì dùng
     luôn, không thì tự đề xuất chọn/tạo - KHÔNG phải lỗi phải báo SAP. Ở đây không có mã nào
@@ -72,6 +98,8 @@ def _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke):
             if phones_sp:
                 continue
             if toks_moi == toks_sp:
+                if not _cache_dong_bo_dia_chi(sp, du_lieu, thong_ke["canh_bao_cache_sai"], bo_nho_check):
+                    continue
                 ma_khop, ban_ghi_khop = sp["ma"], sp
                 break
         if ma_khop is None:
@@ -105,6 +133,9 @@ def xu_ly(dong, cache, du_lieu, cho_phep_tao_moi=True):
     chưa đủ Tỉnh/Quận để xét), `canh_bao_cache_sai` (bản ghi cache sai ĐVHC, bị bỏ qua)."""
     thong_ke = {"shipto_tai_dung": set(), "shipto_tao_moi": set(),
                 "canh_bao_cache_sai": set(), "bo_qua_thieu_dia_chi": set()}
+    # Nhớ kết quả check "cache có đồng bộ tỉnh với địa chỉ text của nó" theo chuỗi địa
+    # chỉ - không gọi suy_dvhc_tu_text lặp cho cùng 1 địa chỉ.
+    bo_nho_check = {}
 
     theo_soldto = {}
     for r in dong:
@@ -128,7 +159,7 @@ def xu_ly(dong, cache, du_lieu, cho_phep_tao_moi=True):
             else:
                 rows_khong_ma.append(r)
 
-        _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke)
+        _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke, du_lieu, bo_nho_check)
 
         for (ma_shipto, _dia_chi_nhom), rs in theo_shipto.items():
             ma_khop = None
@@ -151,6 +182,8 @@ def xu_ly(dong, cache, du_lieu, cho_phep_tao_moi=True):
                     thong_ke["canh_bao_cache_sai"].add(
                         f"Ship-to {sp['ma']} tren STM dang sai DVHC "
                         f"(tinh={sp['tinh']}, quan={sp['quan']}) - bo qua, khong dung")
+                    continue
+                if not _cache_dong_bo_dia_chi(sp, du_lieu, thong_ke["canh_bao_cache_sai"], bo_nho_check):
                     continue
                 ma_khop = sp["ma"]
                 ban_ghi_khop = sp
