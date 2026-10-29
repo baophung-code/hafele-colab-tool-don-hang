@@ -551,8 +551,32 @@ def cat_duoi_hanh_chinh(dia_chi):
 
 
 def ghep_dia_chi_cu(dia_chi_goc, phuong_cu, quan_cu, tinh_cu):
-    """'<số nhà + đường>, Phường <cũ>, <Quận cũ>, <Tỉnh cũ>'. Cấp rỗng thì bỏ qua."""
-    phan = [cat_duoi_hanh_chinh(dia_chi_goc)]
+    """'<số nhà + đường>, Phường <cũ>, <Quận cũ>, <Tỉnh cũ>'. Cấp rỗng thì bỏ qua.
+
+    Sau khi cắt từ cuối (cat_duoi_hanh_chinh) còn quét thêm MỘT lần cắt các mảnh có
+    prefix hành chính XEN GIỮA — CHỈ cắt khi mảnh (sau chuan_ten) khớp đúng 1 trong
+    (phuong_cu, quan_cu, tinh_cu) đã suy ra (double-check trước khi xoá). Phòng case
+    SAP ghi "Phường X, Quận Y, Tỉnh Z, ghi chú nội bộ" — ghi chú ở cuối chặn
+    cat_duoi_hanh_chinh dừng sớm, nếu không chặn thêm sẽ bị lặp cấp hành chính 2 lần
+    trong output. Phát hiện 29/10/2026."""
+    sach = cat_duoi_hanh_chinh(dia_chi_goc)
+    chon = {chuan_ten(x) for x in (phuong_cu, quan_cu, tinh_cu) if x and x.strip()}
+    if chon:
+        giu = []
+        for m in [x.strip() for x in sach.split(",")]:
+            if not m:
+                continue
+            # CHỈ cắt khi chuan_ten khớp đúng 1 trong (phuong_cu, quan_cu, tinh_cu)
+            # đã suy ra — double-check trước khi xoá để không gây false positive.
+            # Không check _la_manh_hanh_chinh: mảnh "Hồ Chí Minh" trần không prefix
+            # vẫn trùng tên tỉnh cũ và cần cắt. Case có prefix nhưng tên KHÁC cấp cũ
+            # đã suy (vd "TP Thủ Đức" xen giữa khi suy ra "Quận 2") thì giữ nguyên,
+            # chấp nhận lặp 1 cấp để không rủi ro cắt oan tên công ty/khu.
+            if chuan_ten(m) in chon:
+                continue
+            giu.append(m)
+        sach = ", ".join(giu)
+    phan = [sach]
     phan += [x.strip() for x in (phuong_cu, quan_cu, tinh_cu) if x and x.strip()]
     return ", ".join(p for p in phan if p)
 
