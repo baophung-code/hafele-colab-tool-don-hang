@@ -65,7 +65,7 @@ def _cache_dong_bo_dia_chi(sp, du_lieu, canh_bao, bo_nho):
 
 
 _LY_DO_DVHC = (
-    "Không xác định được Quận/Huyện", "Quận/Huyện hoặc Phường/Xã trùng tên nhiều nơi",
+    "Không xác định được Quận/Huyện", "Có nhiều Quận/Huyện cũ ứng với địa chỉ này",
     "Quận không có trong danh sách STM chấp nhận", "Không xác định được Tỉnh",
     "Tỉnh độ tin cậy thấp",
 )

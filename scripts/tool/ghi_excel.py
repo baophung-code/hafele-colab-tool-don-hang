@@ -60,7 +60,7 @@ _LOAI_TO_NHOM = {
     "Thiếu Mã Ship to": NHOM_SAP,
     "Tỉnh SAP và tỉnh theo toạ độ khác nhau": NHOM_DIA_CHI,
     "Địa chỉ cần soát": NHOM_DIA_CHI,
-    "Quận/Huyện trùng tên nhiều nơi": NHOM_DIA_CHI,
+    "Có nhiều Quận/Huyện cũ ứng với địa chỉ này": NHOM_DIA_CHI,
     "Không xác định được Quận/Huyện": NHOM_DIA_CHI,
     "Quận không có trong danh sách STM chấp nhận": NHOM_DIA_CHI,
     "Không xác định được Tỉnh": NHOM_DIA_CHI,

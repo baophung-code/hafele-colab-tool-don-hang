@@ -17,6 +17,35 @@ from .chuan_hoa import ghep_dia_chi, ten_ship_to, thong_tin_nguoi_nhan
 COT_TRONG = ["F", "H", "R", "S"]
 MA_HINH_THUC_THANH_TOAN_MAC_DINH = "Congno"
 
+
+def _mo_ta_mo_ho(dc):
+    """Format log mơ hồ theo kiểu "mảnh text gốc → Quận cũ", nhóm theo tỉnh.
+
+    Có `ung_vien_nguon` -> dùng để chỉ rõ chữ nào trong địa chỉ ra Quận nào:
+        'Thị trấn Lai Cách' → Huyện Cẩm Giàng; 'Phường Việt Hòa' → Thành phố Hải Dương (cùng Tỉnh Hải Dương)
+    Không có nguồn (fallback cũ) -> chỉ liệt kê ứng viên như trước nhưng không lặp tỉnh:
+        Huyện Cẩm Giàng hoặc Thành phố Hải Dương (cùng Tỉnh Hải Dương)
+    """
+    nguon = dc.get("ung_vien_nguon") or []
+    uv = dc.get("ung_vien") or [(k, []) for k, _ in nguon] or []
+    if not uv:
+        return "không rõ"
+    # Nhóm theo tỉnh để nếu cùng tỉnh thì nói "cùng Tỉnh X" 1 lần ở cuối.
+    tinh_set = {k[0] for k in (uv if not nguon else [k for k, _ in nguon])}
+    cung_tinh = len(tinh_set) == 1
+    hau_to_tinh = f" (cùng {next(iter(tinh_set))})" if cung_tinh else ""
+
+    if nguon:
+        phan = []
+        for (t, q), ds_m in nguon:
+            manh = next((m for m in ds_m if m), None)
+            quan_hien = q if cung_tinh else f"{q} ({t})"
+            phan.append(f"'{manh}' → {quan_hien}" if manh else quan_hien)
+        return "; ".join(phan) + hau_to_tinh
+
+    phan = [k[1] if cung_tinh else f"{k[1]} ({k[0]})" for k in uv]
+    return " hoặc ".join(phan) + hau_to_tinh
+
 # Cặp (Mã điểm lấy hàng, Mã Ship to) coi là chuyển kho nội bộ, không phải giao khách.
 KHO_NOI_BO = {"VN10", "VN20"}
 
@@ -139,9 +168,9 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
 
         if not quan:
             if dc["ly_do"] == "mo_ho":
-                ds_ung_vien = " hoặc ".join(f"{q} ({t})" for t, q in dc.get("ung_vien", []))
-                danh_dau("Quận/Huyện trùng tên nhiều nơi", ["N", "P"],
-                          f"Chưa rõ là: {ds_ung_vien or 'không rõ'} — tự chọn đúng rồi điền tay")
+                mo_ta = _mo_ta_mo_ho(dc)
+                danh_dau("Có nhiều Quận/Huyện cũ ứng với địa chỉ này", ["N", "P"],
+                          f"{mo_ta} — chọn 1 tên, gõ vào cột Quận rồi bấm Nút 3")
             elif dc["ly_do"] == "khong_hop_le_stm":
                 danh_dau("Quận không có trong danh sách STM chấp nhận", ["N", "P"],
                           f"Suy ra '{dc.get('quan_tho', '')}' ({dc.get('tinh_tho', '')}) "

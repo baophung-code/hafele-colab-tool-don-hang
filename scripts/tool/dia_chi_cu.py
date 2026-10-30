@@ -380,8 +380,10 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
 
     -> dict(tinh_cu, quan_cu, phuong_cu, do_tin, ly_do). `ly_do` rỗng nếu suy được quận;
     "mo_ho" nếu khớp nhiều ứng viên không lọc nổi còn 1; "khong_co_quan" nếu không mảnh nào
-    khớp. `tinh_cu` vẫn có thể có giá trị (từ chữ hoặc từ `ten_tinh_rg`) ngay cả khi
-    `quan_cu` rỗng — 2 việc tách biệt, xem spec §2.5.
+    khớp. `tinh_cu` CHỈ lấy từ CHỮ (text) — `ten_tinh_rg` chỉ dùng làm trọng tài phân xử khi
+    text có nhiều Quận/Phường trùng tên qua các tỉnh (xem `khop_tinh`), KHÔNG dùng làm
+    fallback khi text không ghi tỉnh. Chốt 30/10/2026: text thiếu tỉnh/quận → coi như không
+    xác định, để trống + tool báo cảnh báo, không bịa từ Rg (xem CLAUDE.md mục 8).
     """
     manh = [_bo_ngoac_bao_quanh(m) for m in str(dia_chi_goc).split(",") if m.strip()]
     phan = [_phan_loai_manh(m) for m in manh]
@@ -425,28 +427,40 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
             return cands[0]
         return None
 
+    # nguon_cua: (tinh_cu, quan_cu) -> list[str] mảnh text GỐC đã sinh ra ứng viên này.
+    # Giữ nguyên thứ tự xuất hiện trong địa chỉ + dedup; dùng để log mơ hồ dễ hiểu
+    # ("Thị trấn Lai Cách" → Huyện Cẩm Giàng; "Phường Việt Hòa" → TP Hải Dương).
+    nguon_cua = {}
+    def _ghi_nguon(k, m):
+        ds = nguon_cua.setdefault(k, [])
+        if m and m not in ds:
+            ds.append(m)
+
+    manh_quan_src = [(ct, m) for m, (cap, ct) in zip(manh, phan) if cap == "quan"]
+    manh_khong_ro_src = [(ct, m) for m, (cap, ct) in zip(manh, phan) if cap == "khong_ro"]
     chon = None
     uv = []
-    for ct in manh_quan + manh_khong_ro:
+    for ct, m in manh_quan_src + manh_khong_ro_src:
         for k in du_lieu.ten_quan.get(ct, []):
             if k not in uv:
                 uv.append(k)
+            _ghi_nguon(k, m)
     def tinh_mo_ho(uv_tho, loc):
-        """Quận mơ hồ (không lọc còn 1) nhưng vẫn có thể BIẾT TỈNH, theo thứ tự ưu tiên:
+        """Quận mơ hồ (không lọc còn 1) nhưng vẫn có thể BIẾT TỈNH khi:
         1) ứng viên đã lọc theo Rg/text (`loc`) cùng 1 tỉnh -> chắc nhất, có xác nhận;
         2) KHÔNG lọc được ứng viên nào (`loc` rỗng) nhưng toàn bộ ứng viên thô (`uv_tho`,
            trước khi lọc) vốn dĩ đã cùng 1 tỉnh -> tỉnh không hề mơ hồ, chỉ quận mới mơ hồ,
-           không cần Rg/text xác nhận gì thêm;
-        3) còn lại thì tin vào Rg nếu có.
-        Chỉ trả rỗng khi thật sự không còn gì để bám vào — xoá sạch tỉnh đã biết chỉ vì
-        quận mơ hồ là bug thật đã vấp 16/10/2026 (45/295 đơn data thật)."""
+           không cần Rg/text xác nhận gì thêm.
+        Hết hai nhánh trên -> trả rỗng (đổi hướng 30/10/2026: bỏ fallback về Rg, text không
+        chỉ ra tỉnh thì để trống, không bịa). Vẫn giữ không xoá sạch tỉnh đã biết chỉ vì quận
+        mơ hồ (bug 16/10/2026, 45/295 đơn)."""
         tinhs = {k[0] for k in loc}
         if len(tinhs) == 1:
             return next(iter(tinhs))
         tinhs_tho = {k[0] for k in uv_tho}
         if len(tinhs_tho) == 1:
             return next(iter(tinhs_tho))
-        return ten_tinh_rg or ""
+        return ""
 
     if len(uv) == 1:
         chon = uv[0]
@@ -457,8 +471,10 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
         else:
             chon = stm_nhat_quan(loc or uv)
             if chon is None:
+                uv_ra = loc or uv
                 return {"tinh_cu": tinh_mo_ho(uv, loc), "quan_cu": "", "phuong_cu": "",
-                        "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": loc or uv}
+                        "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": uv_ra,
+                        "ung_vien_nguon": [(k, nguon_cua.get(k, [])) for k in uv_ra]}
 
     def _tim_ung_vien_phuong(ct, manh_goc):
         """ct -> ứng viên, GỘP cả tên MỚI (phuong_moi) + tên CŨ (phuong_cu_flat), dedup
@@ -487,9 +503,15 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
             # ứng viên nào cùng cấp, để không mất recall với trường hợp dữ liệu
             # crosswalk thiếu/không rõ cấp.
             cung_cap = du_lieu.phuong_moi_co_cap.get((loai, ct), []) if loai else []
-            cand += cung_cap if cung_cap else _tim_ung_vien_phuong(ct, m)
+            them = cung_cap if cung_cap else _tim_ung_vien_phuong(ct, m)
+            cand += them
+            for c in them:
+                _ghi_nguon((c[0], c[1]), m)
         for ct, m in manh_khong_ro_goc:
-            cand += _tim_ung_vien_phuong(ct, m)
+            them = _tim_ung_vien_phuong(ct, m)
+            cand += them
+            for c in them:
+                _ghi_nguon((c[0], c[1]), m)
         bo = {(c[0], c[1]) for c in cand}
         if len(bo) == 1:
             chon = next(iter(bo))
@@ -504,11 +526,13 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
                                         + [m for _, m in manh_khong_ro_goc])
                     chon = _loc_dau_thanh(loc or bo, manh_phuong_raw, du_lieu)
                 if chon is None:
+                    uv_ra = list(loc or bo)
                     return {"tinh_cu": tinh_mo_ho(bo, loc), "quan_cu": "", "phuong_cu": "",
-                            "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": list(loc or bo)}
+                            "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": uv_ra,
+                            "ung_vien_nguon": [(k, nguon_cua.get(k, [])) for k in uv_ra]}
 
     if chon is None:
-        return {"tinh_cu": ten_tinh_rg or "", "quan_cu": "", "phuong_cu": "",
+        return {"tinh_cu": "", "quan_cu": "", "phuong_cu": "",
                 "do_tin": "THAP", "ly_do": "khong_co_quan"}
 
     tinh_cu, quan_cu = chon
@@ -626,6 +650,8 @@ def tra_dia_chi(dia_chi_goc, ten_tinh_rg, du_lieu, lay_dvhc_cu_tu_geocode=None):
         kq = {"N": "", "O": tinh_hien_thi, "P": "", "do_tin": s["do_tin"], "ly_do": s["ly_do"]}
         if s["ly_do"] == "mo_ho" and s.get("ung_vien"):
             kq["ung_vien"] = s["ung_vien"]
+            if s.get("ung_vien_nguon"):
+                kq["ung_vien_nguon"] = s["ung_vien_nguon"]
         return kq
 
     ten = du_lieu.ten_stm(s["tinh_cu"], s["quan_cu"])
