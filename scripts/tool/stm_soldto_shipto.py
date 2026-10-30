@@ -72,6 +72,23 @@ _LY_DO_DVHC = (
 LY_DO_THIEU_MA_SHIPTO = "Thiếu Mã Ship to"
 
 
+def _dung_format_dia_chi_cache(sp):
+    """Chốt 30/10/2026: địa chỉ cache phải kết thúc bằng '..., <Quận cache>, <Tỉnh cache>'
+    thì mới coi là format chuẩn để tái dùng. Có thể có 'Phường X' đứng trước Quận. Không
+    đúng format -> coi như KHÔNG khớp, rơi vào nhánh tạo mới (giữ mã gốc SAP hoặc để trống
+    DECO) - tránh ghi đè địa chỉ file upload bằng chuỗi cache lộn xộn từ STM cũ (nhập tay
+    tự do, có khi chỉ 'HCM' hoặc dính tên người/SĐT)."""
+    manh = [m.strip() for m in (sp.get("dia_chi") or "").split(",") if m.strip()]
+    if len(manh) < 2:
+        return False
+    quan_cache = sp.get("quan", "") or ""
+    tinh_cache = sp.get("tinh", "") or ""
+    if not quan_cache or not tinh_cache:
+        return False
+    return (chuan_ten(manh[-1]) == chuan_ten(tinh_cache)
+            and chuan_ten(manh[-2]) == chuan_ten(quan_cache))
+
+
 def _nhom_theo_dia_chi(rows):
     nhom = {}
     for r in rows:
@@ -101,6 +118,11 @@ def _xu_ly_thieu_ma_shipto(rows_khong_ma, ship_to_hien_co, thong_ke, du_lieu, bo
                 continue
             if toks_moi == toks_sp:
                 if not _cache_dong_bo_dia_chi(sp, du_lieu, thong_ke["canh_bao_cache_sai"], bo_nho_check):
+                    continue
+                if not _dung_format_dia_chi_cache(sp):
+                    thong_ke["canh_bao_cache_sai"].add(
+                        f"Ship-to {sp.get('ma','?')} tren STM dia chi sai format "
+                        "(khong ket thuc bang 'Quan, Tinh') - bo qua, khong tai dung")
                     continue
                 ma_khop, ban_ghi_khop = sp["ma"], sp
                 break
@@ -194,6 +216,11 @@ def xu_ly(dong, cache, du_lieu, cho_phep_tao_moi=True):
                         f"(tinh={sp['tinh']}, quan={sp['quan']}) - bo qua, khong dung")
                     continue
                 if not _cache_dong_bo_dia_chi(sp, du_lieu, thong_ke["canh_bao_cache_sai"], bo_nho_check):
+                    continue
+                if not _dung_format_dia_chi_cache(sp):
+                    thong_ke["canh_bao_cache_sai"].add(
+                        f"Ship-to {sp['ma']} tren STM dia chi sai format "
+                        "(khong ket thuc bang 'Quan, Tinh') - bo qua, khong tai dung")
                     continue
                 ma_khop = sp["ma"]
                 ban_ghi_khop = sp

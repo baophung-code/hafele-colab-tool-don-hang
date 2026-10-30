@@ -551,7 +551,12 @@ def cat_duoi_hanh_chinh(dia_chi):
 
 
 def ghep_dia_chi_cu(dia_chi_goc, phuong_cu, quan_cu, tinh_cu):
-    """'<số nhà + đường>, Phường <cũ>, <Quận cũ>, <Tỉnh cũ>'. Cấp rỗng thì bỏ qua.
+    """'<số nhà + đường>, <Quận cũ>, <Tỉnh cũ>'. Cấp rỗng thì bỏ qua.
+
+    KHÔNG chèn Phường vào output cuối (chốt 30/10/2026: STM/geocode chỉ cần Quận+Tỉnh
+    chuẩn, Phường chèn vào dễ sai do tool suy luận ra tên Phường cũ nhưng SAP có khi
+    ghi tên mới hoặc không khớp). Vẫn GIỮ phuong_cu trong tập cắt xen giữa để loại
+    mảnh "Phường X" bị dính giữa chuỗi (nếu SAP ghi) — không chèn lại cuối.
 
     Sau khi cắt từ cuối (cat_duoi_hanh_chinh) còn quét thêm MỘT lần cắt các mảnh có
     prefix hành chính XEN GIỮA — CHỈ cắt khi mảnh (sau chuan_ten) khớp đúng 1 trong
@@ -577,7 +582,7 @@ def ghep_dia_chi_cu(dia_chi_goc, phuong_cu, quan_cu, tinh_cu):
             giu.append(m)
         sach = ", ".join(giu)
     phan = [sach]
-    phan += [x.strip() for x in (phuong_cu, quan_cu, tinh_cu) if x and x.strip()]
+    phan += [x.strip() for x in (quan_cu, tinh_cu) if x and x.strip()]
     return ", ".join(p for p in phan if p)
 
 
