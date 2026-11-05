@@ -36,6 +36,14 @@ def _mo_ta_mo_ho(dc):
     hau_to_tinh = f" (cùng {next(iter(tinh_set))})" if cung_tinh else ""
 
     if nguon:
+        # Tất cả ứng viên cùng ra TỪ 1 MẢNH text duy nhất (vd Phường MỚI 2025 gộp từ
+        # nhiều Quận CŨ) -> format gọn hơn, không lặp tên mảnh: "'Phường Việt Hòa'
+        # ứng với nhiều Quận cũ: TP Hải Dương, Huyện Cẩm Giàng (cùng Tỉnh Hải Dương)".
+        manh_moi = [next((m for m in ds_m if m), None) for _, ds_m in nguon]
+        if manh_moi and all(m == manh_moi[0] for m in manh_moi) and manh_moi[0]:
+            dsq = [q if cung_tinh else f"{q} ({t})" for (t, q), _ in nguon]
+            return (f"'{manh_moi[0]}' ứng với nhiều Quận cũ: "
+                    + ", ".join(dsq) + hau_to_tinh)
         phan = []
         for (t, q), ds_m in nguon:
             manh = next((m for m in ds_m if m), None)

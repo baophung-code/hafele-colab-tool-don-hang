@@ -375,6 +375,32 @@ def _bo_ngoac_bao_quanh(s):
     return t
 
 
+_NAY_LA = re.compile(r"(?i)\bnay\s+l[aà]\b")
+
+
+def _bo_old_truoc_nay_la(dia_chi):
+    """Khách ghi 'OLD..., nay là NEW...' (dấu hiệu mô tả rõ sáp nhập 2025) → bỏ các mảnh
+    ADMIN UNIT đứng TRƯỚC cụm 'nay là', chỉ giữ NEW. Mảnh không phải admin (số nhà, đường,
+    thôn/landmark) giữ nguyên vì không đổi theo sáp nhập. Trong mảnh chứa 'nay là X',
+    cắt bỏ cụm 'nay là', giữ X.
+
+    Case thật 05/11/2026: 'Thôn Tiền, Thị trấn Lai Cách, nay la Thôn Tiền, Phường Việt Hòa'
+    — không bỏ thì Lai Cách (Huyện Cẩm Giàng cũ) va với Việt Hòa (TP Hải Dương cũ) →
+    mơ hồ dù cùng Tỉnh Hải Dương. Khách đã ghi rõ 'nay là' thì tin khách, chỉ nhìn phần NEW.
+    """
+    def _kd(s):
+        t = unicodedata.normalize("NFD", str(s))
+        return "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
+    manh = [m.strip() for m in str(dia_chi).split(",")]
+    idx = next((i for i, m in enumerate(manh) if _NAY_LA.search(_kd(m))), None)
+    if idx is None:
+        return dia_chi
+    truoc = [m for m in manh[:idx] if m and not _la_manh_hanh_chinh(m)]
+    cat = _NAY_LA.sub("", manh[idx]).strip(" ,")
+    sau = ([cat] if cat else []) + [m for m in manh[idx+1:] if m]
+    return ", ".join(m for m in (truoc + sau) if m)
+
+
 def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
     """Suy Tỉnh/Quận/Phường CŨ thuần từ chữ trong địa chỉ SAP — KHÔNG toạ độ, KHÔNG mạng.
 
@@ -385,6 +411,10 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
     fallback khi text không ghi tỉnh. Chốt 30/10/2026: text thiếu tỉnh/quận → coi như không
     xác định, để trống + tool báo cảnh báo, không bịa từ Rg (xem CLAUDE.md mục 8).
     """
+    _kd = lambda s: "".join(c for c in unicodedata.normalize("NFD", str(s))
+                             if unicodedata.category(c) != "Mn").lower()
+    co_nay_la = bool(_NAY_LA.search(_kd(dia_chi_goc)))
+    dia_chi_goc = _bo_old_truoc_nay_la(dia_chi_goc)
     manh = [_bo_ngoac_bao_quanh(m) for m in str(dia_chi_goc).split(",") if m.strip()]
     phan = [_phan_loai_manh(m) for m in manh]
     manh_quan = [ct for cap, ct in phan if cap == "quan"]
@@ -476,7 +506,7 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
                         "do_tin": "THAP", "ly_do": "mo_ho", "ung_vien": uv_ra,
                         "ung_vien_nguon": [(k, nguon_cua.get(k, [])) for k in uv_ra]}
 
-    def _tim_ung_vien_phuong(ct, manh_goc):
+    def _tim_ung_vien_phuong(ct, manh_goc, _chi_moi=co_nay_la):
         """ct -> ứng viên, GỘP cả tên MỚI (phuong_moi) + tên CŨ (phuong_cu_flat), dedup
         giữ thứ tự. Trước đây dùng OR (ưu tiên phuong_moi, chỉ rơi về phuong_cu_flat khi
         rỗng) — gây bug 28/10/2026 với "phường Hòa Phú, Bình Dương" / "Phường Trường Thạnh,
@@ -486,13 +516,23 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
         để bước lọc tỉnh phía dưới sort out — tỉnh đã biết → bỏ ứng viên tỉnh sai; tỉnh
         chưa biết → đã dựa vào stm_nhat_quan/dau_thanh/mo_ho như cũ. Nếu vẫn rỗng và
         manh_goc có dấu gạch ngang, thử lại với phần TRƯỚC dấu (_chuan_ten_truoc_gach_ngang)."""
-        tim = list(dict.fromkeys(
-            du_lieu.phuong_moi.get(ct, []) + du_lieu.phuong_cu_flat.get(ct, [])))
+        # Có 'nay là' -> khách ghi rõ tên MỚI 2025, KHÔNG được tra phuong_cu_flat
+        # (nếu không, tên MỚI ngẫu nhiên trùng tên CŨ ở tỉnh khác → mơ hồ oan). Case
+        # thật 05/11/2026: 'Phường Việt Hòa' MỚI (gộp Lai Cách → Cẩm Giàng) trùng tên
+        # Phường Việt Hòa CŨ (TP Hải Dương) → mơ hồ dù khách đã ghi 'nay là'.
+        if _chi_moi:
+            tim = list(du_lieu.phuong_moi.get(ct, []))
+        else:
+            tim = list(dict.fromkeys(
+                du_lieu.phuong_moi.get(ct, []) + du_lieu.phuong_cu_flat.get(ct, [])))
         if not tim:
             alt = _chuan_ten_truoc_gach_ngang(manh_goc)
             if alt and alt != ct:
-                tim = list(dict.fromkeys(
-                    du_lieu.phuong_moi.get(alt, []) + du_lieu.phuong_cu_flat.get(alt, [])))
+                if _chi_moi:
+                    tim = list(du_lieu.phuong_moi.get(alt, []))
+                else:
+                    tim = list(dict.fromkeys(
+                        du_lieu.phuong_moi.get(alt, []) + du_lieu.phuong_cu_flat.get(alt, [])))
         return tim
 
     if chon is None:
