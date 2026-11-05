@@ -18,7 +18,9 @@ from .cau_hinh import doc_bang_ma_tinh, doc_config
 from .dia_chi_cu import DuLieu, tra_dia_chi
 from .doc_excel import doc_bang
 from .dung_bang import dung_bang
-from .ghi_excel import GIAI_THICH_NHOM, don_theo_nhom, ghi_file, nhom_cua
+from .ghi_excel import (GIAI_THICH_NHOM, LOAI_SO_LUONG_AM, LOAI_THIEU_NGAY,
+                         doc_lai_canh_bao_sap, doc_lai_upload, don_theo_nhom, ghi_de_upload,
+                         ghi_file, nhom_cua, xoa_canh_bao_dia_chi, xoa_canh_bao_sap_goc)
 from .nhan_dien_file import nhan_dien_thu_muc
 from . import trackasia_api
 
@@ -166,6 +168,84 @@ def chay(thu_muc_vao, thu_muc_ra, duong_dan_config, duong_dan_bang_tinh):
             for k, v in sorted(theo_loai.items(), key=lambda x: -x[1]):
                 print(f"      - {k}: {v} đơn")
     return duong_dan_ra
+
+
+def quet_lai_sau_sua_tay(thu_muc_ra, duong_dan_du_lieu):
+    """Bước 3: khách đã mở file upload_STM_*.xlsx mới nhất, sửa tay Tỉnh/Quận/Địa chỉ/
+    Ngày gửi/Số lượng trực tiếp trong Excel. Bước này đọc lại, re-validate, và XOÁ cảnh
+    báo + bỏ tô vàng ở các dòng giờ đã hợp lệ. KHÔNG đụng Sold-to/Ship-to (STM tự làm
+    qua TMS-15494).
+
+    Logic quét Tỉnh/Quận: ưu tiên nhận trực tiếp nếu (O, P) khớp danh_muc_stm.csv (fuzzy
+    nhẹ qua chuan_cap_stm); nếu không, suy lại từ cột Địa chỉ (N) qua tra_dia_chi —
+    engine thuần chữ, CHẤP NHẬN CẢ tên ĐVHC CŨ lẫn MỚI 2025 (crosswalk đã có cả 2).
+
+    -> (duong_dan_file, so_dong_quet_duoc, so_dong_van_sai)."""
+    thu_muc_ra = Path(thu_muc_ra)
+    cac_file = sorted(thu_muc_ra.glob("upload_STM_*.xlsx"),
+                      key=lambda p: p.stat().st_mtime)
+    if not cac_file:
+        raise LoiNguoiDung(
+            f"Không thấy file upload_STM_*.xlsx nào trong:\n  {thu_muc_ra}\n"
+            "Hãy bấm Bước 1 trước để tạo file upload."
+        )
+    duong_dan_file = cac_file[-1]
+
+    du_lieu_dia_chi = _nap_du_lieu_dia_chi(duong_dan_du_lieu)
+    if du_lieu_dia_chi is None:
+        raise LoiNguoiDung(
+            "Không đọc được dữ liệu địa chỉ tham chiếu (crosswalk/danh mục STM) trong:\n"
+            f"  {duong_dan_du_lieu}"
+        )
+
+    dong = doc_lai_upload(duong_dan_file)
+    hang_da_sua_dung = []
+    hang_van_sai = []
+    thay_doi = []
+    for d in dong:
+        thieu = [c for c in ("O", "P") if not str(d.get(c, "")).strip()]
+        chuan = None
+        if not thieu:
+            chuan = du_lieu_dia_chi.chuan_cap_stm(d["O"], d["P"])
+        if chuan is None:
+            kq = tra_dia_chi(d["N"], d["O"], du_lieu_dia_chi)
+            if not kq["ly_do"]:
+                chuan = (kq["O"], kq["P"])
+                if kq["N"]:
+                    d["N"] = kq["N"]
+        if chuan is None:
+            hang_van_sai.append(d["_hang"])
+        else:
+            d["O"], d["P"] = chuan
+            hang_da_sua_dung.append(d["_hang"])
+            thay_doi.append({"_hang": d["_hang"], "N": d["N"], "O": d["O"], "P": d["P"]})
+
+    ghi_de_upload(duong_dan_file, thay_doi)
+    xoa_canh_bao_dia_chi(duong_dan_file, hang_da_sua_dung)
+
+    dong_sap = doc_lai_canh_bao_sap(duong_dan_file)
+    hang_da_sua_ngay = [
+        d["_hang"] for d in dong_sap
+        if LOAI_THIEU_NGAY in str(d["AB"])
+        and d["D"] not in (None, "") and d["T"] not in (None, "")
+    ]
+    hang_da_sua_so_luong = [
+        d["_hang"] for d in dong_sap
+        if LOAI_SO_LUONG_AM in str(d["AB"])
+        and isinstance(d["G"], (int, float)) and d["G"] > 0
+    ]
+    xoa_canh_bao_sap_goc(duong_dan_file, hang_da_sua_ngay, hang_da_sua_so_luong)
+
+    print(f"\n  Đã quét lại: {len(hang_da_sua_dung)} dòng Tỉnh/Quận đã hợp lệ, "
+          f"{len(hang_van_sai)} dòng vẫn còn sai")
+    if hang_da_sua_ngay or hang_da_sua_so_luong:
+        print(f"  Đã xoá cảnh báo: {len(hang_da_sua_ngay)} dòng ngày gửi/ETD, "
+              f"{len(hang_da_sua_so_luong)} dòng số lượng")
+    if hang_van_sai:
+        print(f"  [!] {len(hang_van_sai)} dòng vẫn còn Tỉnh/Quận không khớp danh mục STM — "
+              "sửa tay rồi bấm lại Bước 3.")
+
+    return duong_dan_file, len(hang_da_sua_dung), len(hang_van_sai)
 
 
 def _duong_dan_file_ra(thu_muc_ra):

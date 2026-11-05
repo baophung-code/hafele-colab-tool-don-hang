@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 """Ghi file kết quả: sheet 'Upload' (27 cột).
 
-Từ 05/11/2026: bỏ hẳn sheet ẩn `_TenSoldTo` + các hàm đọc lại/ghi đè (doc_lai_upload,
-ghi_de_upload, xoa_canh_bao_*) khi gỡ luồng Sold-to/Ship-to trên STM — STM tự làm việc
-này qua TMS-15494."""
+Từ 05/11/2026: bỏ hẳn sheet ẩn `_TenSoldTo` (gắn với luồng Sold-to/Ship-to gỡ cùng đợt —
+STM tự làm việc đó qua TMS-15494). Nhưng các hàm đọc lại/ghi đè (doc_lai_upload,
+ghi_de_upload, xoa_canh_bao_*) vẫn GIỮ cho Bước 3 "Quét lại sau khi sửa tay" —
+khách sửa Tỉnh/Quận/Địa chỉ/Ngày/Số lượng trực tiếp trong Excel, bấm Bước 3 để tool
+re-validate + xoá cảnh báo tô vàng đúng dòng đã hợp lệ."""
 import datetime
 
 import openpyxl
@@ -115,3 +117,133 @@ def _sheet_upload(ws, dong):
 
     for k, w in RONG_COT.items():
         ws.column_dimensions[get_column_letter(KHOA.index(k) + 1)].width = w
+
+
+LOAI_THIEU_NGAY = "Thiếu ngày gửi / ETD (cột D, T)"
+LOAI_SO_LUONG_AM = "Số lượng ≤ 0"
+
+
+def doc_lai_upload(duong_dan):
+    """Đọc lại sheet 'Upload' (có thể đã được khách sửa tay) -> list dict theo khoá
+    K/L/M/N/O/P + '_hang' (số dòng Excel thật, bắt đầu từ 2) để `ghi_de_upload` biết ghi
+    đè đúng ô. Dùng cho Bước 3."""
+    wb = openpyxl.load_workbook(duong_dan, data_only=True)
+    try:
+        ws = wb["Upload"]
+        ket_qua = []
+        so_cot = len(KHOA)
+        for i in range(2, ws.max_row + 1):
+            if all(ws.cell(i, j).value in (None, "") for j in range(1, so_cot + 1)):
+                continue
+            d = {"_hang": i}
+            for k in ("K", "L", "M", "N", "O", "P"):
+                v = ws.cell(i, KHOA.index(k) + 1).value
+                d[k] = "" if v is None else v
+            ket_qua.append(d)
+        return ket_qua
+    finally:
+        wb.close()
+
+
+def ghi_de_upload(duong_dan, thay_doi):
+    """Ghi đè đúng ô N/O/P (và L nếu truyền) của file theo list dict có '_hang' + khoá cần
+    sửa. Không đụng ô khác, không đụng cột 'Lý do cảnh báo' (xoá riêng qua
+    xoa_canh_bao_dia_chi)."""
+    if not thay_doi:
+        return
+    wb = openpyxl.load_workbook(duong_dan)
+    try:
+        ws = wb["Upload"]
+        for d in thay_doi:
+            for k in ("L", "N", "O", "P"):
+                if k in d:
+                    ws.cell(d["_hang"], KHOA.index(k) + 1).value = d[k]
+        try:
+            wb.save(duong_dan)
+        except PermissionError:
+            raise PermissionError(
+                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
+                "bấm lại Bước 3."
+            )
+    finally:
+        wb.close()
+    chuyen_sang_shared_strings(duong_dan)
+
+
+def doc_lai_canh_bao_sap(duong_dan):
+    """Đọc lại cột D, T, G, AB sheet 'Upload' — Bước 3 dùng để biết dòng nào khách đã tự
+    điền tay ngày gửi/ETD hoặc sửa số lượng."""
+    wb = openpyxl.load_workbook(duong_dan, data_only=True)
+    try:
+        ws = wb["Upload"]
+        ket_qua = []
+        for i in range(2, ws.max_row + 1):
+            d = {"_hang": i, "AB": ws.cell(i, KHOA.index("AB") + 1).value or ""}
+            for k in ("D", "T", "G"):
+                d[k] = ws.cell(i, KHOA.index(k) + 1).value
+            ket_qua.append(d)
+        return ket_qua
+    finally:
+        wb.close()
+
+
+def _xoa_khoi_cot_ab(ws, hang, giu_lai):
+    """giu_lai(loai) -> bool. Giữ lại các mục cảnh báo thoả điều kiện, xoá phần còn lại."""
+    col_ab = KHOA.index("AB") + 1
+    o = ws.cell(hang, col_ab)
+    if not o.value:
+        return
+    con_lai = [p for p in str(o.value).split("; ")
+               if p and giu_lai(p.split(" — ")[0])]
+    o.value = "; ".join(con_lai)
+
+
+def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong):
+    """Xoá cảnh báo Thiếu ngày gửi/ETD và Số lượng ≤ 0 khỏi các dòng khách đã tự điền tay
+    hợp lệ trực tiếp trong Excel + bỏ tô vàng đúng cột đã sửa, không đụng cảnh báo khác."""
+    if not hang_da_sua_ngay and not hang_da_sua_so_luong:
+        return
+    wb = openpyxl.load_workbook(duong_dan)
+    try:
+        ws = wb["Upload"]
+        for hang in hang_da_sua_ngay:
+            _xoa_khoi_cot_ab(ws, hang, lambda loai: loai != LOAI_THIEU_NGAY)
+            for k in ("D", "T"):
+                ws.cell(hang, KHOA.index(k) + 1).fill = PatternFill(fill_type=None)
+        for hang in hang_da_sua_so_luong:
+            _xoa_khoi_cot_ab(ws, hang, lambda loai: loai != LOAI_SO_LUONG_AM)
+            ws.cell(hang, KHOA.index("G") + 1).fill = PatternFill(fill_type=None)
+        try:
+            wb.save(duong_dan)
+        except PermissionError:
+            raise PermissionError(
+                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
+                "bấm lại Bước 3."
+            )
+    finally:
+        wb.close()
+    chuyen_sang_shared_strings(duong_dan)
+
+
+def xoa_canh_bao_dia_chi(duong_dan, cac_hang):
+    """Xoá mọi cảnh báo thuộc NHOM_DIA_CHI khỏi cột AB + bỏ tô vàng N/O/P của các dòng đã
+    quét lại hợp lệ ở Bước 3. Không đụng nhóm khác (vd Thiếu Mã đơn hàng)."""
+    if not cac_hang:
+        return
+    wb = openpyxl.load_workbook(duong_dan)
+    try:
+        ws = wb["Upload"]
+        for hang in cac_hang:
+            _xoa_khoi_cot_ab(ws, hang, lambda loai: nhom_cua(loai) != NHOM_DIA_CHI)
+            for k in ("N", "O", "P"):
+                ws.cell(hang, KHOA.index(k) + 1).fill = PatternFill(fill_type=None)
+        try:
+            wb.save(duong_dan)
+        except PermissionError:
+            raise PermissionError(
+                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
+                "bấm lại Bước 3."
+            )
+    finally:
+        wb.close()
+    chuyen_sang_shared_strings(duong_dan)
