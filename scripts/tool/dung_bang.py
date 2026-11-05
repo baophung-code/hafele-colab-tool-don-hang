@@ -140,9 +140,10 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
         # 21/10/2026 không cần báo, khác với Mã đơn hàng vẫn giữ cảnh báo.
         ma_dat = str(it.get("Reference Document", "")).strip()
 
-        # Thiếu Mã Ship to (vd nhóm DECO) cảnh báo được SINH SAU, ở stm_soldto_shipto.xu_ly()
-        # - chỉ cảnh báo khi KHÔNG khớp được cache nào trong cùng Sold-to (đổi hướng
-        # 29/10/2026). Ở đây giữ nguyên gán L theo SAP, không tự báo thiếu.
+        # Thiếu Mã Ship to (vd nhóm DECO) KHÔNG cảnh báo — từ 05/11/2026 STM tự khớp địa chỉ
+        # gần đúng + đề xuất tạo điểm mới ngay trong popup "Danh sách điểm giao" lúc upload
+        # (TMS-15494, QA DONE 04/11/2026). Giữ nguyên gán L theo SAP, chỗ nào SAP không có
+        # mã thì để trống và STM lo.
         l = ship_to.get(ma_don, "")
 
         ngay = ngay_kh.get(odo)
@@ -205,7 +206,6 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
             "I": str(it.get("Storage Location", "")).strip(), "J": j,
             "K": str(d.get("Sold-to pt", "")).strip(), "L": l,
             "M": ten_ship_to(d.get("Name", ""), d.get("Name 2", "")),
-            "_ten_soldto": str(d.get("Sold-to party", "")).strip(),
             "N": dia_chi, "O": ten_tinh, "P": quan,
             "Q": MA_HINH_THUC_THANH_TOAN_MAC_DINH,
             "T": cot_t, "U": cot_u, "V": str(d.get("Handling Unit", "")).strip(), "W": cot_w,

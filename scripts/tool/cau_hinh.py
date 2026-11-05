@@ -33,11 +33,6 @@ class CauHinh:
         self.cum_tu = list(CUM_TU_MAC_DINH)
         self.cot_dia_chi = list(COT_DIA_CHI_MAC_DINH)
         self.canh_bao = []
-        self.bat_stm = False
-        self.stm_base_url = "https://api-stm-prod.smartlogvn.com"
-        self.stm_domain = "hafele.smartlogvn.com"
-        self.stm_functionid = "37"
-        self.stm_customerid = 7
         self.trackasia_key = KEY_TRACKASIA_MAC_DINH
         self.go_mo_ho_quan = True
 
@@ -80,14 +75,6 @@ def doc_config(duong_dan):
         ds = [x.strip() for x in p.get("dia_chi", "cot").split(",") if x.strip()]
         if ds:
             c.cot_dia_chi = ds
-
-    if p.has_section("stm"):
-        v = p.get("stm", "bat", fallback="khong").strip().lower()
-        c.bat_stm = v in ("co", "1", "true", "yes")
-        c.stm_base_url = p.get("stm", "base_url", fallback=c.stm_base_url).strip()
-        c.stm_domain = p.get("stm", "d", fallback=c.stm_domain).strip()
-        c.stm_functionid = p.get("stm", "functionid", fallback=c.stm_functionid).strip()
-        c.stm_customerid = so_nguyen("stm", "customerid", c.stm_customerid)
 
     if p.has_section("trackasia"):
         v = p.get("trackasia", "key", fallback=c.trackasia_key).strip()

@@ -1,6 +1,10 @@
 # scripts/tool/ghi_excel.py
 # -*- coding: utf-8 -*-
-"""Ghi file kết quả: sheet 'Upload' (27 cột)."""
+"""Ghi file kết quả: sheet 'Upload' (27 cột).
+
+Từ 05/11/2026: bỏ hẳn sheet ẩn `_TenSoldTo` + các hàm đọc lại/ghi đè (doc_lai_upload,
+ghi_de_upload, xoa_canh_bao_*) khi gỡ luồng Sold-to/Ship-to trên STM — STM tự làm việc
+này qua TMS-15494."""
 import datetime
 
 import openpyxl
@@ -30,13 +34,6 @@ TEN_COT = [
 # không phải khoá thường có trong dong[i] -> ghi riêng từ r["_ly_do"], xem _sheet_upload.
 KHOA = [k for k in "ABCDEFGHIJKLMNOPQRSTUVW" if k != "H"] + ["Z", "X", "Y", "AA", "AB"]
 
-# Sheet ẩn mang Mã Sold to -> Tên Sold to (DO."Sold-to party") sang Bước 2
-# (stm_soldto_shipto.xu_ly/stm_api.ghi_file_soldto_shipto) - file upload đơn hàng KHÔNG có
-# cột nào chứa tên Sold-to (template chỉ có mã), nên không thể thêm vào sheet "Upload" mà
-# STM đọc. Khách chốt 20/10/2026: dùng sheet ẩn trong CHÍNH file này thay vì file .json rời
-# (dễ bị khách làm thất lạc) hoặc thêm cột hiển thị (phải hỏi lại STM có chấp nhận không).
-SHEET_TEN_SOLDTO = "_TenSoldTo"
-COT_TEN_SOLDTO = ["Mã Sold to", "Tên Sold to"]
 VANG = PatternFill("solid", start_color="FFF2CC", end_color="FFF2CC")
 DINH_DANG_NGAY = {"D": "dd/mm/yyyy", "T": "dd/mm/yyyy hh:mm",
                   "U": "dd/mm/yyyy hh:mm", "W": "dd/mm/yyyy hh:mm"}
@@ -46,18 +43,15 @@ RONG_COT = {"M": 38, "N": 60, "O": 20, "P": 20, "D": 13, "T": 17, "U": 17, "W": 
 # cái nào phải BÁO LẠI vì thiếu ngay từ dữ liệu SAP gốc (tool không có gì để suy).
 NHOM_SAP = "Thiếu dữ liệu SAP gốc"
 NHOM_DIA_CHI = "Cần soát địa chỉ"
-NHOM_STM = "Sold-to/Ship-to trên STM"
 NHOM_KHAC = "Khác"
 GIAI_THICH_NHOM = {
     NHOM_SAP: "không tự sửa trên Excel được — báo lại bộ phận SAP",
     NHOM_DIA_CHI: "có thể sửa trực tiếp trên Excel",
-    NHOM_STM: "tool chưa tạo được trên STM — khách tự tạo tay hoặc chạy lại",
     NHOM_KHAC: "xem cột Chi tiết",
 }
 _LOAI_TO_NHOM = {
     "Thiếu ngày gửi / ETD (cột D, T)": NHOM_SAP,
     "Số lượng ≤ 0": NHOM_SAP,
-    "Thiếu Mã Ship to": NHOM_SAP,
     "Tỉnh SAP và tỉnh theo toạ độ khác nhau": NHOM_DIA_CHI,
     "Địa chỉ cần soát": NHOM_DIA_CHI,
     "Có nhiều Quận/Huyện cũ ứng với địa chỉ này": NHOM_DIA_CHI,
@@ -65,7 +59,6 @@ _LOAI_TO_NHOM = {
     "Quận không có trong danh sách STM chấp nhận": NHOM_DIA_CHI,
     "Không xác định được Tỉnh": NHOM_DIA_CHI,
     "Tỉnh độ tin cậy thấp": NHOM_DIA_CHI,
-    "Không tạo được Sold-to/Ship-to mới trên STM": NHOM_STM,
 }
 
 
@@ -84,7 +77,6 @@ def don_theo_nhom(canh_bao):
 def ghi_file(duong_dan, dong):
     wb = openpyxl.Workbook()
     _sheet_upload(wb.active, dong)
-    _sheet_ten_soldto(wb, dong)
     try:
         wb.save(duong_dan)
     except PermissionError:
@@ -123,183 +115,3 @@ def _sheet_upload(ws, dong):
 
     for k, w in RONG_COT.items():
         ws.column_dimensions[get_column_letter(KHOA.index(k) + 1)].width = w
-
-
-def _sheet_ten_soldto(wb, dong):
-    """Ghi sheet ẩn (xem SHEET_TEN_SOLDTO) - mỗi Mã Sold to 1 dòng, lấy tên THẬT đầu tiên
-    gặp (r['_ten_soldto'], xem dung_bang.py). Thiếu khoá/tên rỗng -> vẫn ghi dòng với tên
-    rỗng, không crash (Bước 2 khi đó để trống, giống hành vi cũ)."""
-    ten_theo_ma = {}
-    for r in dong:
-        ma = r.get("K", "")
-        if not ma or ma in ten_theo_ma:
-            continue
-        ten_theo_ma[ma] = r.get("_ten_soldto", "")
-    ws = wb.create_sheet(SHEET_TEN_SOLDTO)
-    ws.append(COT_TEN_SOLDTO)
-    for ma, ten in ten_theo_ma.items():
-        ws.append([ma, ten])
-    ws.sheet_state = "hidden"
-
-
-def _doc_ten_soldto(wb):
-    """-> {ma_soldto: ten}. Không có sheet (file cũ trước khi có tính năng này) -> {}."""
-    if SHEET_TEN_SOLDTO not in wb.sheetnames:
-        return {}
-    ws = wb[SHEET_TEN_SOLDTO]
-    ket_qua = {}
-    for i in range(2, ws.max_row + 1):
-        ma = ws.cell(i, 1).value
-        if ma:
-            ket_qua[ma] = ws.cell(i, 2).value or ""
-    return ket_qua
-
-
-def doc_lai_upload(duong_dan):
-    """Đọc lại sheet 'Upload' đã xuất (có thể đã được khách sửa tay trong Excel) -> list[dict]
-    theo khoá K/L/M/N/O/P + '_ten_soldto' (tra theo K từ sheet ẩn SHEET_TEN_SOLDTO, xem
-    _sheet_ten_soldto), kèm '_hang' (số dòng Excel thật, bắt đầu từ 2) để `ghi_de_upload()`
-    biết ghi đè đúng ô. Dùng cho Bước 2 (main.tao_file_soldto_shipto) - 'M' (Tên Ship to) và
-    '_ten_soldto' hiện không còn nơi nào tiêu thụ sau khi bỏ file upload_soldto_shipto riêng
-    (21/10/2026, xem CLAUDE.md) - giữ lại để không vỡ hợp đồng dữ liệu, có thể dọn ở phiên sau
-    nếu xác nhận chắc chắn không còn dùng."""
-    wb = openpyxl.load_workbook(duong_dan, data_only=True)
-    try:
-        ws = wb["Upload"]
-        ten_soldto = _doc_ten_soldto(wb)
-        ket_qua = []
-        so_cot = len(KHOA)
-        for i in range(2, ws.max_row + 1):
-            if all(ws.cell(i, j).value in (None, "") for j in range(1, so_cot + 1)):
-                continue
-            d = {"_hang": i}
-            for k in ("K", "L", "M", "N", "O", "P"):
-                v = ws.cell(i, KHOA.index(k) + 1).value
-                d[k] = "" if v is None else v
-            d["_ten_soldto"] = ten_soldto.get(d["K"], "")
-            ket_qua.append(d)
-        return ket_qua
-    finally:
-        wb.close()
-
-
-def ghi_de_upload(duong_dan, thay_doi):
-    """Ghi đè lại đúng ô L/N/O/P của file `duong_dan` theo `thay_doi` (list dict có '_hang' +
-    bất kỳ khoá nào trong 'L','N','O','P' cần sửa) - không đụng ô nào khác, không đụng cột
-    'Lý do cảnh báo'. Dùng ở Bước 2, sau khi `stm_soldto_shipto.xu_ly()` xử lý xong."""
-    if not thay_doi:
-        return
-    wb = openpyxl.load_workbook(duong_dan)
-    try:
-        ws = wb["Upload"]
-        for d in thay_doi:
-            for k in ("L", "N", "O", "P"):
-                if k in d:
-                    ws.cell(d["_hang"], KHOA.index(k) + 1).value = d[k]
-        try:
-            wb.save(duong_dan)
-        except PermissionError:
-            raise PermissionError(
-                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
-                "bấm lại nút 3."
-            )
-    finally:
-        wb.close()
-    chuyen_sang_shared_strings(duong_dan)
-
-
-# Khách yêu cầu 21/10/2026: 2 loại cảnh báo nhóm NHOM_SAP cũng được tự xoá ở Bước 2 giống
-# NHOM_DIA_CHI, nếu khách tự điền tay giá trị hợp lệ trực tiếp trong Excel - đổi hướng so với
-# thiết kế ban đầu ("không tự sửa trên Excel được") vì thực tế khách có đủ thông tin (gọi hỏi
-# kho/soát đơn) để điền tay chính xác hơn là bắt buộc phải quay lại sửa SAP rồi chạy lại tool.
-LOAI_THIEU_NGAY = "Thiếu ngày gửi / ETD (cột D, T)"
-LOAI_SO_LUONG_AM = "Số lượng ≤ 0"
-
-
-def doc_lai_canh_bao_sap(duong_dan):
-    """Đọc lại cột D (Ngày gửi y/c), T (ETD), G (Số lượng), AB (Lý do cảnh báo) của sheet
-    'Upload' - dùng ở Bước 2 (xem xoa_canh_bao_sap_goc) để biết dòng nào khách đã tự điền tay
-    ngày/số lượng. Tách riêng khỏi doc_lai_upload (giữ nguyên hợp đồng K/L/M/N/O/P đã có test
-    riêng, không đụng vào)."""
-    wb = openpyxl.load_workbook(duong_dan, data_only=True)
-    try:
-        ws = wb["Upload"]
-        ket_qua = []
-        for i in range(2, ws.max_row + 1):
-            d = {"_hang": i, "AB": ws.cell(i, KHOA.index("AB") + 1).value or ""}
-            for k in ("D", "T", "G"):
-                d[k] = ws.cell(i, KHOA.index(k) + 1).value
-            ket_qua.append(d)
-        return ket_qua
-    finally:
-        wb.close()
-
-
-def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong):
-    """Bước 2: khách đã tự điền tay Ngày gửi y/c + ETD (cột D, T) hoặc sửa đúng Số lượng
-    (cột G) trực tiếp trong Excel - xoá đúng mục cảnh báo tương ứng khỏi cột 'Lý do cảnh báo'
-    (khoá AB) + bỏ tô vàng đúng (các) cột đã sửa, không đụng cảnh báo khác trên cùng dòng
-    (vd 1 dòng vừa thiếu ngày vừa thiếu quận - sửa ngày thì chỉ xoá đúng cảnh báo ngày)."""
-    if not hang_da_sua_ngay and not hang_da_sua_so_luong:
-        return
-    wb = openpyxl.load_workbook(duong_dan)
-    try:
-        ws = wb["Upload"]
-        col_ab = KHOA.index("AB") + 1
-
-        def _xoa_1_loai(hang, loai, cot_bo_to):
-            o = ws.cell(hang, col_ab)
-            if o.value:
-                con_lai = [p for p in str(o.value).split("; ")
-                           if p and p.split(" — ")[0] != loai]
-                o.value = "; ".join(con_lai)
-            for k in cot_bo_to:
-                ws.cell(hang, KHOA.index(k) + 1).fill = PatternFill(fill_type=None)
-
-        for hang in hang_da_sua_ngay:
-            _xoa_1_loai(hang, LOAI_THIEU_NGAY, ("D", "T"))
-        for hang in hang_da_sua_so_luong:
-            _xoa_1_loai(hang, LOAI_SO_LUONG_AM, ("G",))
-
-        try:
-            wb.save(duong_dan)
-        except PermissionError:
-            raise PermissionError(
-                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
-                "bấm lại nút 3."
-            )
-    finally:
-        wb.close()
-    chuyen_sang_shared_strings(duong_dan)
-
-
-def xoa_canh_bao_dia_chi(duong_dan, cac_hang):
-    """Dùng ở Bước 2 (main.tao_file_soldto_shipto), sau khi quét lại Tỉnh/Quận (trực tiếp
-    hợp lệ hoặc tự sửa/suy lại qua tra_dia_chi) thấy dòng đã đúng: xoá các mục cảnh báo
-    thuộc NHOM_DIA_CHI khỏi cột 'Lý do cảnh báo' + bỏ tô vàng cột Địa chỉ/Tỉnh/Quận (N/O/P)
-    của đúng các dòng Excel trong `cac_hang` (số dòng thật, xem doc_lai_upload). Không đụng
-    cảnh báo nhóm khác (vd 'Thiếu Mã đơn hàng') hay dòng không nằm trong `cac_hang`."""
-    if not cac_hang:
-        return
-    wb = openpyxl.load_workbook(duong_dan)
-    try:
-        ws = wb["Upload"]
-        col_ab = KHOA.index("AB") + 1
-        for hang in cac_hang:
-            o = ws.cell(hang, col_ab)
-            if o.value:
-                con_lai = [p for p in str(o.value).split("; ")
-                           if p and nhom_cua(p.split(" — ")[0]) != NHOM_DIA_CHI]
-                o.value = "; ".join(con_lai)
-            for k in ("N", "O", "P"):
-                ws.cell(hang, KHOA.index(k) + 1).fill = PatternFill(fill_type=None)
-        try:
-            wb.save(duong_dan)
-        except PermissionError:
-            raise PermissionError(
-                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
-                "bấm lại nút 3."
-            )
-    finally:
-        wb.close()
-    chuyen_sang_shared_strings(duong_dan)
