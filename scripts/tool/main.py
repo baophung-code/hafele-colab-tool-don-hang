@@ -171,7 +171,7 @@ def chay(thu_muc_vao, thu_muc_ra, duong_dan_config, duong_dan_bang_tinh):
 
 
 def quet_lai_sau_sua_tay(thu_muc_ra, duong_dan_du_lieu):
-    """Bước 3: khách đã mở file upload_STM_*.xlsx mới nhất, sửa tay Tỉnh/Quận/Địa chỉ/
+    """Bước 2: khách đã mở file upload_STM_*.xlsx mới nhất, sửa tay Tỉnh/Quận/Địa chỉ/
     Ngày gửi/Số lượng trực tiếp trong Excel. Bước này đọc lại, re-validate, và XOÁ cảnh
     báo + bỏ tô vàng ở các dòng giờ đã hợp lệ. KHÔNG đụng Sold-to/Ship-to (STM tự làm
     qua TMS-15494).
@@ -243,7 +243,7 @@ def quet_lai_sau_sua_tay(thu_muc_ra, duong_dan_du_lieu):
               f"{len(hang_da_sua_so_luong)} dòng số lượng")
     if hang_van_sai:
         print(f"  [!] {len(hang_van_sai)} dòng vẫn còn Tỉnh/Quận không khớp danh mục STM — "
-              "sửa tay rồi bấm lại Bước 3.")
+              "sửa tay rồi bấm lại Bước 2.")
 
     return duong_dan_file, len(hang_da_sua_dung), len(hang_van_sai)
 

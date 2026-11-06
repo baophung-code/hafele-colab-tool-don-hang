@@ -4,8 +4,8 @@
 
 Từ 05/11/2026: bỏ hẳn sheet ẩn `_TenSoldTo` (gắn với luồng Sold-to/Ship-to gỡ cùng đợt —
 STM tự làm việc đó qua TMS-15494). Nhưng các hàm đọc lại/ghi đè (doc_lai_upload,
-ghi_de_upload, xoa_canh_bao_*) vẫn GIỮ cho Bước 3 "Quét lại sau khi sửa tay" —
-khách sửa Tỉnh/Quận/Địa chỉ/Ngày/Số lượng trực tiếp trong Excel, bấm Bước 3 để tool
+ghi_de_upload, xoa_canh_bao_*) vẫn GIỮ cho Bước 2 "Quét lại sau khi sửa tay" —
+khách sửa Tỉnh/Quận/Địa chỉ/Ngày/Số lượng trực tiếp trong Excel, bấm Bước 2 để tool
 re-validate + xoá cảnh báo tô vàng đúng dòng đã hợp lệ."""
 import datetime
 
@@ -126,7 +126,7 @@ LOAI_SO_LUONG_AM = "Số lượng ≤ 0"
 def doc_lai_upload(duong_dan):
     """Đọc lại sheet 'Upload' (có thể đã được khách sửa tay) -> list dict theo khoá
     K/L/M/N/O/P + '_hang' (số dòng Excel thật, bắt đầu từ 2) để `ghi_de_upload` biết ghi
-    đè đúng ô. Dùng cho Bước 3."""
+    đè đúng ô. Dùng cho Bước 2."""
     wb = openpyxl.load_workbook(duong_dan, data_only=True)
     try:
         ws = wb["Upload"]
@@ -163,7 +163,7 @@ def ghi_de_upload(duong_dan, thay_doi):
         except PermissionError:
             raise PermissionError(
                 f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
-                "bấm lại Bước 3."
+                "bấm lại Bước 2."
             )
     finally:
         wb.close()
@@ -171,7 +171,7 @@ def ghi_de_upload(duong_dan, thay_doi):
 
 
 def doc_lai_canh_bao_sap(duong_dan):
-    """Đọc lại cột D, T, G, AB sheet 'Upload' — Bước 3 dùng để biết dòng nào khách đã tự
+    """Đọc lại cột D, T, G, AB sheet 'Upload' — Bước 2 dùng để biết dòng nào khách đã tự
     điền tay ngày gửi/ETD hoặc sửa số lượng."""
     wb = openpyxl.load_workbook(duong_dan, data_only=True)
     try:
@@ -218,7 +218,7 @@ def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong):
         except PermissionError:
             raise PermissionError(
                 f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
-                "bấm lại Bước 3."
+                "bấm lại Bước 2."
             )
     finally:
         wb.close()
@@ -227,7 +227,7 @@ def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong):
 
 def xoa_canh_bao_dia_chi(duong_dan, cac_hang):
     """Xoá mọi cảnh báo thuộc NHOM_DIA_CHI khỏi cột AB + bỏ tô vàng N/O/P của các dòng đã
-    quét lại hợp lệ ở Bước 3. Không đụng nhóm khác (vd Thiếu Mã đơn hàng)."""
+    quét lại hợp lệ ở Bước 2. Không đụng nhóm khác (vd Thiếu Mã đơn hàng)."""
     if not cac_hang:
         return
     wb = openpyxl.load_workbook(duong_dan)
@@ -242,7 +242,7 @@ def xoa_canh_bao_dia_chi(duong_dan, cac_hang):
         except PermissionError:
             raise PermissionError(
                 f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
-                "bấm lại Bước 3."
+                "bấm lại Bước 2."
             )
     finally:
         wb.close()

@@ -179,7 +179,7 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
             if dc["ly_do"] == "mo_ho":
                 mo_ta = _mo_ta_mo_ho(dc)
                 danh_dau("Có nhiều Quận/Huyện cũ ứng với địa chỉ này", ["N", "P"],
-                          f"{mo_ta} — chọn 1 tên, gõ vào cột Quận rồi bấm Nút 3")
+                          f"{mo_ta} — chọn 1 tên, gõ vào cột Quận rồi bấm Bước 2")
             elif dc["ly_do"] == "khong_hop_le_stm":
                 danh_dau("Quận không có trong danh sách STM chấp nhận", ["N", "P"],
                           f"Suy ra '{dc.get('quan_tho', '')}' ({dc.get('tinh_tho', '')}) "
