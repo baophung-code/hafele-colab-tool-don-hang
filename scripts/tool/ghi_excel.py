@@ -54,6 +54,8 @@ GIAI_THICH_NHOM = {
 _LOAI_TO_NHOM = {
     "Thiếu ngày gửi / ETD (cột D, T)": NHOM_SAP,
     "Số lượng ≤ 0": NHOM_SAP,
+    "Thiếu Mã Sold to": NHOM_SAP,
+    "Thiếu Mã Ship to": NHOM_SAP,
     "Tỉnh SAP và tỉnh theo toạ độ khác nhau": NHOM_DIA_CHI,
     "Địa chỉ cần soát": NHOM_DIA_CHI,
     "Có nhiều Quận/Huyện cũ ứng với địa chỉ này": NHOM_DIA_CHI,
@@ -121,6 +123,8 @@ def _sheet_upload(ws, dong):
 
 LOAI_THIEU_NGAY = "Thiếu ngày gửi / ETD (cột D, T)"
 LOAI_SO_LUONG_AM = "Số lượng ≤ 0"
+LOAI_THIEU_SOLD_TO = "Thiếu Mã Sold to"
+LOAI_THIEU_SHIP_TO = "Thiếu Mã Ship to"
 
 
 def doc_lai_upload(duong_dan):
@@ -171,15 +175,15 @@ def ghi_de_upload(duong_dan, thay_doi):
 
 
 def doc_lai_canh_bao_sap(duong_dan):
-    """Đọc lại cột D, T, G, AB sheet 'Upload' — Bước 2 dùng để biết dòng nào khách đã tự
-    điền tay ngày gửi/ETD hoặc sửa số lượng."""
+    """Đọc lại cột D, T, G, K, L, AB sheet 'Upload' — Bước 2 dùng để biết dòng nào khách
+    đã tự điền tay ngày gửi/ETD, số lượng, Mã Sold to hoặc Mã Ship to."""
     wb = openpyxl.load_workbook(duong_dan, data_only=True)
     try:
         ws = wb["Upload"]
         ket_qua = []
         for i in range(2, ws.max_row + 1):
             d = {"_hang": i, "AB": ws.cell(i, KHOA.index("AB") + 1).value or ""}
-            for k in ("D", "T", "G"):
+            for k in ("D", "T", "G", "K", "L"):
                 d[k] = ws.cell(i, KHOA.index(k) + 1).value
             ket_qua.append(d)
         return ket_qua
@@ -198,10 +202,13 @@ def _xoa_khoi_cot_ab(ws, hang, giu_lai):
     o.value = "; ".join(con_lai)
 
 
-def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong):
-    """Xoá cảnh báo Thiếu ngày gửi/ETD và Số lượng ≤ 0 khỏi các dòng khách đã tự điền tay
-    hợp lệ trực tiếp trong Excel + bỏ tô vàng đúng cột đã sửa, không đụng cảnh báo khác."""
-    if not hang_da_sua_ngay and not hang_da_sua_so_luong:
+def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong,
+                         hang_da_sua_sold_to=(), hang_da_sua_ship_to=()):
+    """Xoá cảnh báo Thiếu ngày gửi/ETD, Số lượng ≤ 0, Thiếu Mã Sold to/Ship to khỏi các
+    dòng khách đã tự điền tay hợp lệ trực tiếp trong Excel + bỏ tô vàng đúng cột đã sửa,
+    không đụng cảnh báo khác."""
+    if not (hang_da_sua_ngay or hang_da_sua_so_luong
+            or hang_da_sua_sold_to or hang_da_sua_ship_to):
         return
     wb = openpyxl.load_workbook(duong_dan)
     try:
@@ -213,6 +220,49 @@ def xoa_canh_bao_sap_goc(duong_dan, hang_da_sua_ngay, hang_da_sua_so_luong):
         for hang in hang_da_sua_so_luong:
             _xoa_khoi_cot_ab(ws, hang, lambda loai: loai != LOAI_SO_LUONG_AM)
             ws.cell(hang, KHOA.index("G") + 1).fill = PatternFill(fill_type=None)
+        for hang in hang_da_sua_sold_to:
+            _xoa_khoi_cot_ab(ws, hang, lambda loai: loai != LOAI_THIEU_SOLD_TO)
+            ws.cell(hang, KHOA.index("K") + 1).fill = PatternFill(fill_type=None)
+        for hang in hang_da_sua_ship_to:
+            _xoa_khoi_cot_ab(ws, hang, lambda loai: loai != LOAI_THIEU_SHIP_TO)
+            ws.cell(hang, KHOA.index("L") + 1).fill = PatternFill(fill_type=None)
+        try:
+            wb.save(duong_dan)
+        except PermissionError:
+            raise PermissionError(
+                f"Không ghi được '{duong_dan}'. File đang mở trong Excel — hãy đóng lại rồi "
+                "bấm lại Bước 2."
+            )
+    finally:
+        wb.close()
+    chuyen_sang_shared_strings(duong_dan)
+
+
+def cap_nhat_canh_bao_dia_chi(duong_dan, cap_nhat):
+    """Bước 2, nhánh "vẫn sai sau khi re-quét từ cột N": xoá cảnh báo NHOM_DIA_CHI cũ ở
+    hàng đó + bỏ tô vàng N/O/P cũ, rồi append cảnh báo MỚI (tính lại từ địa chỉ user đang
+    có) + tô vàng đúng ô mới. Không đụng cảnh báo nhóm khác (vd Thiếu Mã đơn hàng).
+
+    cap_nhat: list dict {_hang, canh_bao: [(loai, chi_tiet), ...], o_vang: [khoa_cot, ...]}
+    """
+    if not cap_nhat:
+        return
+    wb = openpyxl.load_workbook(duong_dan)
+    try:
+        ws = wb["Upload"]
+        col_ab = KHOA.index("AB") + 1
+        for d in cap_nhat:
+            hang = d["_hang"]
+            _xoa_khoi_cot_ab(ws, hang, lambda loai: nhom_cua(loai) != NHOM_DIA_CHI)
+            for k in ("N", "O", "P"):
+                ws.cell(hang, KHOA.index(k) + 1).fill = PatternFill(fill_type=None)
+            o = ws.cell(hang, col_ab)
+            cu = str(o.value or "")
+            moi = [f"{loai} — {ct}" if ct else loai
+                   for loai, ct in d.get("canh_bao", [])]
+            o.value = "; ".join([p for p in ([cu] + moi) if p])
+            for k in d.get("o_vang", []):
+                ws.cell(hang, KHOA.index(k) + 1).fill = VANG
         try:
             wb.save(duong_dan)
         except PermissionError:

@@ -148,11 +148,18 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
         # 21/10/2026 không cần báo, khác với Mã đơn hàng vẫn giữ cảnh báo.
         ma_dat = str(it.get("Reference Document", "")).strip()
 
-        # Thiếu Mã Ship to (vd nhóm DECO) KHÔNG cảnh báo — từ 05/11/2026 STM tự khớp địa chỉ
-        # gần đúng + đề xuất tạo điểm mới ngay trong popup "Danh sách điểm giao" lúc upload
-        # (TMS-15494, QA DONE 04/11/2026). Giữ nguyên gán L theo SAP, chỗ nào SAP không có
-        # mã thì để trống và STM lo.
+        # Thiếu Mã Sold to / Ship to: cảnh báo để khách biết dòng nào SAP không có sẵn mã.
+        # STM (TMS-15494) tự khớp địa chỉ gần đúng + đề xuất tạo điểm mới trong popup "Danh
+        # sách điểm giao" lúc upload — nhưng khách vẫn muốn thấy cờ vàng để soát chủ động,
+        # và tự điền tay được nếu biết mã; Bước 2 sẽ tự xoá cảnh báo khi ô đã được điền.
+        ma_sold = str(d.get("Sold-to pt", "")).strip()
+        if not ma_sold:
+            danh_dau("Thiếu Mã Sold to", ["K"],
+                      "SAP không có Sold-to pt cho delivery này")
         l = ship_to.get(ma_don, "")
+        if not l:
+            danh_dau("Thiếu Mã Ship to", ["L"],
+                      "SAP không có Ship-To cho mã đơn này (thường gặp nhóm DECO)")
 
         ngay = ngay_kh.get(odo)
         if ngay is None:
@@ -212,7 +219,7 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
             "A": odo, "B": ma_don, "C": ma_dat,
             "D": cot_d, "E": str(it.get("Material", "")).strip(), "G": sl,
             "I": str(it.get("Storage Location", "")).strip(), "J": j,
-            "K": str(d.get("Sold-to pt", "")).strip(), "L": l,
+            "K": ma_sold, "L": l,
             "M": ten_ship_to(d.get("Name", ""), d.get("Name 2", "")),
             "N": dia_chi, "O": ten_tinh, "P": quan,
             "Q": MA_HINH_THUC_THANH_TOAN_MAC_DINH,

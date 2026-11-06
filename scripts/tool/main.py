@@ -17,10 +17,12 @@ from pathlib import Path
 from .cau_hinh import doc_bang_ma_tinh, doc_config
 from .dia_chi_cu import DuLieu, tra_dia_chi
 from .doc_excel import doc_bang
-from .dung_bang import dung_bang
+from .dung_bang import _mo_ta_mo_ho, dung_bang
 from .ghi_excel import (GIAI_THICH_NHOM, LOAI_SO_LUONG_AM, LOAI_THIEU_NGAY,
-                         doc_lai_canh_bao_sap, doc_lai_upload, don_theo_nhom, ghi_de_upload,
-                         ghi_file, nhom_cua, xoa_canh_bao_dia_chi, xoa_canh_bao_sap_goc)
+                         LOAI_THIEU_SHIP_TO, LOAI_THIEU_SOLD_TO,
+                         cap_nhat_canh_bao_dia_chi, doc_lai_canh_bao_sap, doc_lai_upload,
+                         don_theo_nhom, ghi_de_upload, ghi_file, nhom_cua,
+                         xoa_canh_bao_dia_chi, xoa_canh_bao_sap_goc)
 from .nhan_dien_file import nhan_dien_thu_muc
 from . import trackasia_api
 
@@ -170,26 +172,38 @@ def chay(thu_muc_vao, thu_muc_ra, duong_dan_config, duong_dan_bang_tinh):
     return duong_dan_ra
 
 
-def quet_lai_sau_sua_tay(thu_muc_ra, duong_dan_du_lieu):
-    """Bước 2: khách đã mở file upload_STM_*.xlsx mới nhất, sửa tay Tỉnh/Quận/Địa chỉ/
-    Ngày gửi/Số lượng trực tiếp trong Excel. Bước này đọc lại, re-validate, và XOÁ cảnh
-    báo + bỏ tô vàng ở các dòng giờ đã hợp lệ. KHÔNG đụng Sold-to/Ship-to (STM tự làm
-    qua TMS-15494).
+def quet_lai_sau_sua_tay(thu_muc_ra, duong_dan_du_lieu, duong_dan_file=None):
+    """Bước 2: khách đã mở file upload_STM_*.xlsx, sửa tay Địa chỉ/Tỉnh/Quận/Ngày gửi/
+    Số lượng/Mã Sold to/Mã Ship to trực tiếp trong Excel. Bước này đọc lại, re-validate,
+    và XOÁ cảnh báo + bỏ tô vàng ở các dòng giờ đã hợp lệ. Dòng nào vẫn mơ hồ địa chỉ
+    thì RE-WRITE lý do theo nội dung MỚI (không giữ lý do stale từ Bước 1).
 
-    Logic quét Tỉnh/Quận: ưu tiên nhận trực tiếp nếu (O, P) khớp danh_muc_stm.csv (fuzzy
-    nhẹ qua chuan_cap_stm); nếu không, suy lại từ cột Địa chỉ (N) qua tra_dia_chi —
-    engine thuần chữ, CHẤP NHẬN CẢ tên ĐVHC CŨ lẫn MỚI 2025 (crosswalk đã có cả 2).
+    Logic quét Tỉnh/Quận — ưu tiên cột N (Địa chỉ) vì khách thường sửa chỗ này:
+      1) Luôn chạy tra_dia_chi(N) lại từ đầu, engine thuần chữ, chấp nhận cả tên ĐVHC
+         CŨ lẫn MỚI 2025 (crosswalk có sẵn cả 2). Ra 1 cặp duy nhất → dùng, xoá cảnh báo.
+      2) Nếu vẫn mơ hồ/không khớp: thử (O, P) user điền. Đủ 2 ô + khớp danh_muc_stm.csv
+         (fuzzy nhẹ qua chuan_cap_stm) → tin user.
+      3) Cả 2 không được → rewrite cảnh báo với lý do MỚI suy từ địa chỉ user hiện có.
+
+    duong_dan_file: đường dẫn file cụ thể (Colab upload). Nếu None → scan thu_muc_ra lấy
+    file upload_STM_*.xlsx mới nhất (GUI .exe, hành vi cũ).
 
     -> (duong_dan_file, so_dong_quet_duoc, so_dong_van_sai)."""
-    thu_muc_ra = Path(thu_muc_ra)
-    cac_file = sorted(thu_muc_ra.glob("upload_STM_*.xlsx"),
-                      key=lambda p: p.stat().st_mtime)
-    if not cac_file:
-        raise LoiNguoiDung(
-            f"Không thấy file upload_STM_*.xlsx nào trong:\n  {thu_muc_ra}\n"
-            "Hãy bấm Bước 1 trước để tạo file upload."
-        )
-    duong_dan_file = cac_file[-1]
+    if duong_dan_file is not None:
+        duong_dan_file = Path(duong_dan_file)
+        if not duong_dan_file.exists():
+            raise LoiNguoiDung(f"Không thấy file: {duong_dan_file}")
+    else:
+        thu_muc_ra = Path(thu_muc_ra)
+        cac_file = sorted(thu_muc_ra.glob("upload_STM_*.xlsx"),
+                          key=lambda p: p.stat().st_mtime)
+        if not cac_file:
+            raise LoiNguoiDung(
+                f"Không thấy file upload_STM_*.xlsx nào trong:\n  {thu_muc_ra}\n"
+                "Hãy bấm Bước 1 trước để tạo file upload, hoặc truyền thẳng đường dẫn "
+                "file đã sửa tay (Colab)."
+            )
+        duong_dan_file = cac_file[-1]
 
     du_lieu_dia_chi = _nap_du_lieu_dia_chi(duong_dan_du_lieu)
     if du_lieu_dia_chi is None:
@@ -202,26 +216,28 @@ def quet_lai_sau_sua_tay(thu_muc_ra, duong_dan_du_lieu):
     hang_da_sua_dung = []
     hang_van_sai = []
     thay_doi = []
+    canh_bao_moi = []
     for d in dong:
-        thieu = [c for c in ("O", "P") if not str(d.get(c, "")).strip()]
+        kq = tra_dia_chi(d["N"], d["O"], du_lieu_dia_chi)
         chuan = None
-        if not thieu:
+        if not kq["ly_do"]:
+            chuan = (kq["O"], kq["P"])
+            if kq["N"]:
+                d["N"] = kq["N"]
+        elif str(d["O"]).strip() and str(d["P"]).strip():
             chuan = du_lieu_dia_chi.chuan_cap_stm(d["O"], d["P"])
-        if chuan is None:
-            kq = tra_dia_chi(d["N"], d["O"], du_lieu_dia_chi)
-            if not kq["ly_do"]:
-                chuan = (kq["O"], kq["P"])
-                if kq["N"]:
-                    d["N"] = kq["N"]
-        if chuan is None:
-            hang_van_sai.append(d["_hang"])
-        else:
+        if chuan is not None:
             d["O"], d["P"] = chuan
             hang_da_sua_dung.append(d["_hang"])
-            thay_doi.append({"_hang": d["_hang"], "N": d["N"], "O": d["O"], "P": d["P"]})
+            thay_doi.append({"_hang": d["_hang"], "N": d["N"],
+                             "O": d["O"], "P": d["P"]})
+        else:
+            hang_van_sai.append(d["_hang"])
+            canh_bao_moi.append(_tinh_canh_bao_dia_chi_moi(d, kq))
 
     ghi_de_upload(duong_dan_file, thay_doi)
     xoa_canh_bao_dia_chi(duong_dan_file, hang_da_sua_dung)
+    cap_nhat_canh_bao_dia_chi(duong_dan_file, canh_bao_moi)
 
     dong_sap = doc_lai_canh_bao_sap(duong_dan_file)
     hang_da_sua_ngay = [
@@ -234,18 +250,68 @@ def quet_lai_sau_sua_tay(thu_muc_ra, duong_dan_du_lieu):
         if LOAI_SO_LUONG_AM in str(d["AB"])
         and isinstance(d["G"], (int, float)) and d["G"] > 0
     ]
-    xoa_canh_bao_sap_goc(duong_dan_file, hang_da_sua_ngay, hang_da_sua_so_luong)
+    hang_da_sua_sold_to = [
+        d["_hang"] for d in dong_sap
+        if LOAI_THIEU_SOLD_TO in str(d["AB"])
+        and str(d.get("K", "") or "").strip()
+    ]
+    hang_da_sua_ship_to = [
+        d["_hang"] for d in dong_sap
+        if LOAI_THIEU_SHIP_TO in str(d["AB"])
+        and str(d.get("L", "") or "").strip()
+    ]
+    xoa_canh_bao_sap_goc(duong_dan_file, hang_da_sua_ngay, hang_da_sua_so_luong,
+                         hang_da_sua_sold_to, hang_da_sua_ship_to)
 
     print(f"\n  Đã quét lại: {len(hang_da_sua_dung)} dòng Tỉnh/Quận đã hợp lệ, "
           f"{len(hang_van_sai)} dòng vẫn còn sai")
-    if hang_da_sua_ngay or hang_da_sua_so_luong:
+    if (hang_da_sua_ngay or hang_da_sua_so_luong
+            or hang_da_sua_sold_to or hang_da_sua_ship_to):
         print(f"  Đã xoá cảnh báo: {len(hang_da_sua_ngay)} dòng ngày gửi/ETD, "
-              f"{len(hang_da_sua_so_luong)} dòng số lượng")
+              f"{len(hang_da_sua_so_luong)} dòng số lượng, "
+              f"{len(hang_da_sua_sold_to)} dòng Mã Sold to, "
+              f"{len(hang_da_sua_ship_to)} dòng Mã Ship to")
     if hang_van_sai:
         print(f"  [!] {len(hang_van_sai)} dòng vẫn còn Tỉnh/Quận không khớp danh mục STM — "
-              "sửa tay rồi bấm lại Bước 2.")
+              "sửa cột Địa chỉ cho rõ hơn hoặc gõ thẳng Tỉnh+Quận rồi bấm lại Bước 2.")
 
     return duong_dan_file, len(hang_da_sua_dung), len(hang_van_sai)
+
+
+def _tinh_canh_bao_dia_chi_moi(d, kq):
+    """Tính lý do cảnh báo địa chỉ MỚI cho 1 dòng vẫn sai sau khi re-quét từ N. Trả
+    dict {_hang, canh_bao, o_vang} để ghi_excel.cap_nhat_canh_bao_dia_chi() xài."""
+    canh_bao = []
+    o_vang = []
+    ly_do = kq.get("ly_do", "")
+    if ly_do == "mo_ho":
+        canh_bao.append((
+            "Có nhiều Quận/Huyện cũ ứng với địa chỉ này",
+            f"{_mo_ta_mo_ho(kq)} — chọn 1 tên, gõ vào cột Quận rồi bấm Bước 2",
+        ))
+        o_vang += ["N", "P"]
+    elif ly_do == "khong_hop_le_stm":
+        canh_bao.append((
+            "Quận không có trong danh sách STM chấp nhận",
+            f"Suy ra '{kq.get('quan_tho', '')}' ({kq.get('tinh_tho', '')}) "
+            "nhưng STM không có tên này, cần tự tra đúng tên",
+        ))
+        o_vang += ["N", "P"]
+    else:
+        if not str(d["P"]).strip():
+            canh_bao.append((
+                "Không xác định được Quận/Huyện",
+                "Địa chỉ SAP không có chữ khớp được quận/phường nào, cần điền tay",
+            ))
+            o_vang += ["N", "P"]
+    if not str(kq.get("O", "") or d["O"]).strip():
+        canh_bao.append((
+            "Không xác định được Tỉnh",
+            "Địa chỉ SAP không ghi tên tỉnh, cần điền tay",
+        ))
+        if "O" not in o_vang:
+            o_vang.append("O")
+    return {"_hang": d["_hang"], "canh_bao": canh_bao, "o_vang": o_vang}
 
 
 def _duong_dan_file_ra(thu_muc_ra):
