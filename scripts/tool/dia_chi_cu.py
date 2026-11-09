@@ -22,7 +22,7 @@ _NGUONG_MO_TEN_QUAN = 0.85
 # Thứ tự trong nhóm là first-match-wins: cụm 2 từ phải đứng TRƯỚC từ đơn cùng gốc
 # ('thi xa' trước 'xa', 'thanh pho' trước 'p'), nếu không 'Thị xã Dĩ An' sẽ hỏng.
 _TIEN_TO = re.compile(
-    r"^(thanh pho|thi xa|thi tran|quan|huyen|tinh|phuong|xa|tp|tx|tt|p|q)\s+",
+    r"^(thanh pho|thi xa|thi tran|quan|huyen|tinh|phuong|xa|tp|tx|tt|p|q|x)\s+",
     re.IGNORECASE)
 
 # 'Tịnh' (dấu nặng, tên riêng vd huyện Tịnh Biên - An Giang) mất dấu thanh
@@ -189,6 +189,22 @@ class DuLieu:
                 if p and q:
                     self._phuong_pre2020_hcm[chuan_ten(p)] = q
 
+        # Quận 2/9/Thủ Đức ở HCM bị sáp nhập năm 2020 thành TP Thủ Đức → KHÔNG có
+        # trong crosswalk_2025.csv (vốn là bảng ĐVHC trước-2025 vs sau-2025), nên
+        # ten_quan không tra ra khi SAP ghi thẳng. Nhưng STM vẫn giữ cả 3 quận này
+        # (xem danh_muc_stm.csv) → inject thẳng vào ten_quan để text SAP khớp ra
+        # ứng viên. Riêng Thủ Đức: crosswalk có sẵn "Thành phố Thủ Đức" (ĐVHC sau
+        # 2020) cùng chuan_ten="thu duc" → bơm thêm "Quận Thủ Đức" sẽ ra 2 ứng
+        # viên. Code stm_nhat_quan() đã nâng cấp 09/11/2026 lọc ưu tiên ứng viên
+        # có trong STM: "TP Thủ Đức" (ngoài STM) bị loại, "Quận Thủ Đức" (trong
+        # STM) được chốt. Phát hiện 09/11/2026 — case khách thật "vinhomes quận 9".
+        for q_pre in ("Quận 2", "Quận 9", "Quận Thủ Đức"):
+            k = ("Hồ Chí Minh", q_pre)
+            if (chuan_ten("Hồ Chí Minh"), chuan_ten(q_pre)) in self._stm_quan:
+                ds = self.ten_quan.setdefault(chuan_ten(q_pre), [])
+                if k not in ds:
+                    ds.append(k)
+
     def quan_pre2020_hcm(self, phuong):
         """Phường ở TP Thủ Đức (HCM) -> tên quận pre-2020 (Quận 2/Quận 9/Quận Thủ
         Đức) đúng chính tả danh mục STM. Không tra ra -> None."""
@@ -252,7 +268,7 @@ _QUAN_PRE = re.compile(
     r"^(thi\s*x[aã]|qu[aậ]n|huy[eệ]n|tx\.?|q\.?)\s+", re.IGNORECASE)
 # Mảnh là cấp PHƯỜNG/XÃ khi bắt đầu bằng 1 trong các từ này.
 _PHUONG_PRE = re.compile(
-    r"^(ph[uư][ơo]ng|x[aã]|th[iị]\s*tr[aấ]n|p\.?|tt\.?)\s+", re.IGNORECASE)
+    r"^(ph[uư][ơo]ng|x[aã]|th[iị]\s*tr[aấ]n|p\.?|tt\.?|x\.)\s+", re.IGNORECASE)
 # Mảnh là cấp TỈNH khi bắt đầu bằng 1 trong các từ này.
 # "thành phố"/"tp" KHÔNG ở đây cùng lý do trên (xem _QUAN_PRE).
 _TINH_PRE = re.compile(r"^(t[iỉ]nh)\s+", re.IGNORECASE)
@@ -302,7 +318,7 @@ def _chuan_ten_truoc_gach_ngang(manh_goc):
 
 
 _PHUONG_RIENG = re.compile(r"^(ph[uư][ơo]ng|p\.?)\s+", re.IGNORECASE)
-_XA_RIENG = re.compile(r"^(x[aã])\s+", re.IGNORECASE)
+_XA_RIENG = re.compile(r"^(x[aã]|x\.)\s+", re.IGNORECASE)
 _THITRAN_RIENG = re.compile(r"^(th[iị]\s*tr[aấ]n|tt\.?)\s+", re.IGNORECASE)
 
 
@@ -461,18 +477,24 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
         return False
 
     def stm_nhat_quan(cands):
-        """Nhiều ứng viên khác nhau ở cấp CŨ nhưng CÙNG map về 1 tên quận
-        trên danh mục STM (vd 'Thành phố Cao Lãnh' / 'Huyện Cao Lãnh' đều
-        chỉ còn 1 dòng 'Cao Lãnh' trong danh_muc_stm.csv) -> không còn mơ hồ
-        với OUTPUT cuối cùng (cột Quận ra giống hệt nhau dù chọn ứng viên
-        nào), trả ứng viên đầu tiên. Khác tên STM, hoặc có ứng viên không
-        nằm trong danh mục STM -> None, vẫn coi là mơ hồ thật."""
+        """Nhiều ứng viên ở cấp CŨ nhưng -> OUTPUT cuối cùng vẫn giống nhau:
+        1) Cùng map về 1 tên trên danh mục STM (vd 'Thành phố Cao Lãnh' /
+           'Huyện Cao Lãnh' đều còn 1 dòng 'Cao Lãnh' trong danh_muc_stm.csv).
+        2) Chỉ đúng 1 ứng viên nằm trong STM, các ứng viên khác đều ngoài STM
+           -> chốt ứng viên hợp lệ đó (vd 'Thủ Đức': crosswalk ra 'TP Thủ Đức'
+           (ngoài STM) + bơm thêm 'Quận Thủ Đức' (trong STM) -> chốt Quận Thủ
+           Đức, vì ứng viên ngoài STM đằng nào cũng bị bước 2 từ chối). Phát
+           hiện 09/11/2026 khi mở rộng inject pre-2020 HCM.
+        Khác tên STM hoặc nhiều hơn 1 ứng viên hợp lệ -> None, mơ hồ thật."""
         cands = list(cands)
         if len(cands) < 2:
             return None
         ten = [du_lieu.ten_stm(tc, qc) for tc, qc in cands]
         if all(t is not None for t in ten) and len(set(ten)) == 1:
             return cands[0]
+        hop_le = [c for c, t in zip(cands, ten) if t is not None]
+        if len(hop_le) == 1:
+            return hop_le[0]
         return None
 
     # nguon_cua: (tinh_cu, quan_cu) -> list[str] mảnh text GỐC đã sinh ra ứng viên này.
