@@ -153,6 +153,14 @@ class DuLieu:
                 if k not in ds_flat:
                     ds_flat.append(k)
 
+        # Tất cả tên tỉnh (cũ + mới 2025) ở dạng chuan_ten — dùng để biết text SAP có
+        # nêu bất kỳ 1 Tỉnh thật nào không (nhận cả ứng viên khong_ro không tiền tố).
+        # Nếu có, engine không được map ứng viên Quận về Tỉnh KHÁC Tỉnh text — chặn
+        # case fuzzy "Tân Thành, BRVT" → "Tân Thạnh, Long An" (bug 39013, 09/11/2026).
+        self._tat_ca_tinh_chuan = set(self._tinh_moi.keys()) | {
+            chuan_ten(v) for v in self._tinh_moi.values() if v
+        }
+
         self._alias = {}
         for d in csv.DictReader(f_alias):
             self._alias[(d["loai"], chuan_ten(d["ten_crosswalk"]))] = chuan_ten(d["ten_stm"])
@@ -430,6 +438,16 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
 
     tinh_rg_chuan = chuan_ten(ten_tinh_rg) if ten_tinh_rg else None
 
+    # Text (CHỈ text, không Rg) có ghi rõ ≥1 Tỉnh nào không? Bật thì engine không được
+    # chấp nhận ứng viên ở Tỉnh KHÁC Tỉnh text (chặn bug 39013 "Tân Thành, BRVT" →
+    # "Tân Thạnh, Long An"). Rg bị cố ý loại khỏi check này: Rg là trọng tài phân xử
+    # khi text nhiều Quận trùng tên, không mang semantics "text đã nêu Tỉnh" — trộn
+    # vào sẽ block cả case text không nêu tỉnh + Rg không khớp ứng viên nào (test
+    # mo_ho_khong_dung_rg_lam_tinh_khi_ung_vien_khac_tinh_sau_loc, 30/10/2026).
+    co_tinh_text = bool(manh_tinh) or any(
+        ct in du_lieu._tat_ca_tinh_chuan for ct in manh_khong_ro
+    )
+
     def khop_tinh(tinh_cu):
         tc = chuan_ten(tinh_cu)
         if tc in manh_tinh or tc in manh_khong_ro:
@@ -492,6 +510,10 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
             return next(iter(tinhs_tho))
         return ""
 
+    # Text đã nêu Tỉnh -> loại ứng viên ở Tỉnh khác hẳn trước khi chốt (len==1 cũ
+    # không filter dẫn tới bug 39013; đưa filter lên đây áp dụng cho MỌI nhánh).
+    if co_tinh_text:
+        uv = [k for k in uv if khop_tinh(k[0])]
     if len(uv) == 1:
         chon = uv[0]
     elif len(uv) > 1:
@@ -553,6 +575,8 @@ def suy_dvhc_tu_text(dia_chi_goc, ten_tinh_rg, du_lieu):
             for c in them:
                 _ghi_nguon((c[0], c[1]), m)
         bo = {(c[0], c[1]) for c in cand}
+        if co_tinh_text:
+            bo = {b for b in bo if khop_tinh(b[0])}
         if len(bo) == 1:
             chon = next(iter(bo))
         elif len(bo) > 1:
