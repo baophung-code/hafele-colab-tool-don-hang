@@ -56,6 +56,7 @@ _LOAI_TO_NHOM = {
     "Số lượng ≤ 0": NHOM_SAP,
     "Thiếu Mã Sold to": NHOM_SAP,
     "Thiếu Mã Ship to": NHOM_SAP,
+    "Mã vùng Rg không khớp Tỉnh từ địa chỉ": NHOM_SAP,
     "Tỉnh SAP và tỉnh theo toạ độ khác nhau": NHOM_DIA_CHI,
     "Địa chỉ cần soát": NHOM_DIA_CHI,
     "Có nhiều Quận/Huyện cũ ứng với địa chỉ này": NHOM_DIA_CHI,

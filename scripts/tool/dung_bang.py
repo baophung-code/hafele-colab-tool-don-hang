@@ -13,6 +13,7 @@ Sơ đồ dựng:
 import datetime
 
 from .chuan_hoa import ghep_dia_chi, ten_ship_to, thong_tin_nguoi_nhan
+from .dia_chi_cu import chuan_ten
 
 COT_TRONG = ["F", "H", "R", "S"]
 MA_HINH_THUC_THANH_TOAN_MAC_DINH = "Congno"
@@ -200,6 +201,15 @@ def dung_bang(do_ten_cot, do_dong, item_dong, so_dong, uom_dong, cfg, bang_tinh,
                       "Địa chỉ SAP không ghi tên tỉnh, cần điền tay")
         elif tin_cay_rg == "thap" and dc["do_tin"] != "CAO":
             danh_dau("Tỉnh độ tin cậy thấp", ["O"], f"Tool đoán {ten_tinh}, cần soát lại")
+        # Trọng tài ngược: mã vùng Rg (bảng T005S 63 mã ĐVHC cũ khách cung cấp) so với
+        # Tỉnh suy từ CHỮ địa chỉ — lệch thì tô vàng để khách soát, nhưng OUTPUT vẫn LẤY
+        # THEO ĐỊA CHỈ (chốt 12/11/2026: tin địa chỉ hơn Rg vì Rg hay bị nhập sai / gán
+        # theo địa giới tỉnh mới 2025). So ở cấp tỉnh CŨ như khách yêu cầu: nếu lệch
+        # nhiều thì chính là dấu hiệu nhập sai Rg nhiều, để khách chủ động sửa ở SAP.
+        elif ten_tinh_rg and chuan_ten(ten_tinh) != chuan_ten(ten_tinh_rg):
+            danh_dau("Mã vùng Rg không khớp Tỉnh từ địa chỉ", ["O"],
+                      f"Mã vùng SAP (Rg={rg}) ứng với '{ten_tinh_rg}' nhưng địa chỉ suy ra "
+                      f"'{ten_tinh}' — đã lấy theo địa chỉ, soát lại Rg hoặc địa chỉ ở SAP")
 
         sl = it.get("Delivery quantity", "")
         if isinstance(sl, (int, float)) and sl <= 0:
